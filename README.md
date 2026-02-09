@@ -8,7 +8,7 @@ A stealth web scraping MCP (Model Context Protocol) server using **Patchright** 
 - 🔓 **CAPTCHA Support**: Auto-detects and solves Cloudflare Turnstile, hCaptcha, and reCAPTCHA
 - 🔍 **Brave Search**: Search the web without API keys
 - 📄 **Smart Extraction**: Clean content extraction with ad/navigation filtering
-- 🐳 **Docker Ready**: Production-ready containerized deployment
+- 🐳 **Docker Ready**: Production-ready containerized deployment with uv for fast builds
 
 ## Available Tools
 
@@ -121,12 +121,13 @@ services:
 ### Local Setup
 
 ```bash
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install dependencies
-pip install -r requirements.txt
+# Create virtual environment and install dependencies
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
 
 # Install Patchright Chrome
 patchright install chrome

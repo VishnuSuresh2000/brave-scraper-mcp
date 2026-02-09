@@ -59,3 +59,8 @@ services:
 volumes:
   browser_data:
     driver: local
+
+networks:
+  default:
+    name: traefik
+    external: true

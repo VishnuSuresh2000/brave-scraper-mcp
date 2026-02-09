@@ -1,7 +1,10 @@
 # Brave Scraper MCP Server - Optimized Production Dockerfile
-# Uses official Playwright image (minimal for Patchright compatibility)
+# Uses uv for fast Python package management
 
-FROM mcr.microsoft.com/playwright/python:v1.49.1-noble
+FROM python:3.12-slim
+
+# Install uv (official way)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Labels
 LABEL maintainer="Ruto AI Assistant"
@@ -14,14 +17,44 @@ ENV DISPLAY=:99
 ENV STEALTH_MODE=true
 ENV CAPTCHA_AUTO_SOLVE=true
 ENV PYTHONUNBUFFERED=1
+ENV UV_SYSTEM_PYTHON=1
 
-# Install Xvfb + OCR dependencies (not included in Playwright image)
+# Install system dependencies for Xvfb + GUI + OCR + Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Xvfb and X11
     xvfb \
+    x11-utils \
     xdotool \
     scrot \
+    # Python GUI
+    python3-tk \
+    python3-dev \
+    libx11-dev \
+    libxtst-dev \
+    libxext-dev \
+    # OCR dependencies
     tesseract-ocr \
     libtesseract-dev \
+    # Additional dependencies for Chromium
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpango-1.0-0 \
+    libcairo2 \
+    # Fonts
+    fonts-liberation \
+    fonts-noto-color-emoji \
+    # Utilities
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,17 +65,19 @@ RUN useradd -m -s /bin/bash scraper && \
 
 WORKDIR /home/scraper/app
 
-# Install Python dependencies
+# Copy dependency files first for better caching
+COPY pyproject.toml .
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Patchright Chrome (uses Playwright's pre-installed browser base)
+# Install Python dependencies using uv (much faster than pip)
+RUN uv pip install --system -r requirements.txt
+
+# Install Patchright Chrome
 RUN patchright install chrome
 
 # Copy application code
 COPY src/ ./src/
 COPY templates/ ./templates/
-COPY pyproject.toml .
 
 # Set permissions
 RUN chown -R scraper:scraper /home/scraper
