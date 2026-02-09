@@ -203,17 +203,21 @@ class BraveScraperServer:
         @self.server.call_tool()
         async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             """Execute tool by name."""
-            logger.info(f"Calling tool: {name} with args: {arguments}")
+            return await self.call_tool_handler(name, arguments)
 
-            if not self.browser_manager or not self.browser_manager.page:
-                return [TextContent(type="text", text="Error: Browser not initialized")]
+    async def call_tool_handler(self, name: str, arguments: dict) -> list[TextContent]:
+        """Core logic for executing tools with error handling."""
+        logger.info(f"Calling tool: {name} with args: {arguments}")
 
-            try:
-                result = await self._execute_tool(name, arguments)
-                return [TextContent(type="text", text=str(result))]
-            except Exception as e:
-                logger.error(f"Tool execution failed: {e}")
-                return [TextContent(type="text", text=f"Error: {str(e)}")]
+        if not self.browser_manager or not self.browser_manager.page:
+            return [TextContent(type="text", text="Error: Browser not initialized")]
+
+        try:
+            result = await self._execute_tool(name, arguments)
+            return [TextContent(type="text", text=str(result))]
+        except Exception as e:
+            logger.error(f"Tool execution failed: {e}")
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def _execute_tool(self, name: str, arguments: dict) -> str:
         """Route tool call to appropriate handler."""
