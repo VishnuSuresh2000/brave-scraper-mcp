@@ -307,3 +307,226 @@ class TestCaptchaSelectors:
         assert len(solver.CHALLENGE_INDICATORS) > 0
         assert "captcha" in [i.lower() for i in solver.CHALLENGE_INDICATORS]
         assert "verification" in [i.lower() for i in solver.CHALLENGE_INDICATORS]
+
+    def test_slider_selectors(self):
+        """Test slider CAPTCHA selector patterns."""
+        solver = CaptchaSolver()
+        assert "slider" in solver.CAPTCHA_SELECTORS
+        selectors = solver.CAPTCHA_SELECTORS["slider"]
+        assert any("slider" in s.lower() for s in selectors)
+        assert any("drag" in s.lower() for s in selectors)
+
+    def test_slider_challenge_indicators(self):
+        """Test slider CAPTCHA challenge indicators."""
+        solver = CaptchaSolver()
+        indicators = [i.lower() for i in solver.CHALLENGE_INDICATORS]
+        assert "drag the slider" in indicators
+        assert "confirm you're not a robot" in indicators
+
+
+class TestSliderCaptcha:
+    """Test suite for slider CAPTCHA detection and solving."""
+
+    @pytest.fixture
+    def captcha_solver(self):
+        """Create a CaptchaSolver instance for testing."""
+        return CaptchaSolver()
+
+    @pytest.fixture
+    def mock_page(self):
+        """Create a mock Playwright page."""
+        page = AsyncMock()
+        page.query_selector = AsyncMock(return_value=None)
+        page.content = AsyncMock(return_value="<html></html>")
+        page.screenshot = AsyncMock()
+        page.evaluate = AsyncMock()
+        page.mouse = MagicMock()
+        page.mouse.down = AsyncMock()
+        page.mouse.move = AsyncMock()
+        page.mouse.up = AsyncMock()
+        return page
+
+    @pytest.mark.asyncio
+    async def test_detect_slider_captcha_button(self, captcha_solver, mock_page):
+        """Test detection of slider CAPTCHA via button selector."""
+        # Mock query_selector to return button only for slider selectors
+        mock_button = MagicMock()
+        
+        async def mock_query_selector(selector):
+            # Return button for slider-specific selectors
+            slider_selectors = [
+                'button:has-text("Drag the slider")',
+                'button:has-text("slider")',
+                '[role="button"]:has-text("Drag")',
+                'input[type="range"]',
+                '.slider-captcha',
+                '[class*="slider"]',
+            ]
+            if selector in slider_selectors:
+                return mock_button
+            return None
+        
+        mock_page.query_selector = AsyncMock(side_effect=mock_query_selector)
+
+        detected, captcha_type = await captcha_solver.detect_captcha(mock_page)
+
+        assert detected is True
+        assert captcha_type == "slider"
+
+    @pytest.mark.asyncio
+    async def test_detect_slider_captcha_content(self, captcha_solver, mock_page):
+        """Test detection of slider CAPTCHA via content analysis."""
+        # No button element, but content contains slider indicators
+        # Include "slider" keyword to match the type variant check
+        mock_page.content = AsyncMock(
+            return_value='<html><h2>Confirm you\'re not a robot</h2><div>slider captcha</div></html>'
+        )
+
+        detected, captcha_type = await captcha_solver.detect_captcha(mock_page)
+
+        # Should detect via content analysis
+        assert detected is True
+        assert captcha_type == "slider"
+
+    @pytest.mark.asyncio
+    async def test_solve_slider_no_element(self, captcha_solver, mock_page):
+        """Test solving slider when element is not found."""
+        # Mock slider content but no element
+        mock_page.content = AsyncMock(
+            return_value="<html><div>slider captcha Drag the slider</div></html>"
+        )
+        mock_page.query_selector = AsyncMock(return_value=None)
+
+        result = await captcha_solver.solve(mock_page, timeout=1)
+
+        assert result["type"] == "slider"
+        assert result["success"] is False
+
+    @pytest.mark.asyncio
+    async def test_solve_slider_no_bounding_box(self, captcha_solver, mock_page):
+        """Test solving slider when bounding box is not available."""
+        # Mock slider button without bounding box
+        mock_button = MagicMock()
+        mock_button.bounding_box = AsyncMock(return_value=None)
+        
+        # Mock query_selector to return button only for slider selectors
+        async def mock_query_selector(selector):
+            slider_selectors = [
+                'button:has-text("Drag the slider")',
+                'button:has-text("slider")',
+                '[role="button"]:has-text("Drag")',
+                'input[type="range"]',
+                '.slider-captcha',
+                '[class*="slider"]',
+            ]
+            if selector in slider_selectors:
+                return mock_button
+            return None
+        
+        mock_page.query_selector = AsyncMock(side_effect=mock_query_selector)
+
+        result = await captcha_solver.solve(mock_page, timeout=1)
+
+        assert result["type"] == "slider"
+        # Should fail because bounding box is None
+        assert result["success"] is False
+
+    @pytest.mark.asyncio
+    async def test_solve_slider_calls_drag_operation(self, captcha_solver, mock_page):
+        """Test that slider solving attempts drag operation."""
+        # Mock slider button with bounding box
+        mock_button = MagicMock()
+        mock_button.bounding_box = AsyncMock(
+            return_value={"x": 100, "y": 100, "width": 200, "height": 50}
+        )
+        mock_button.hover = AsyncMock()
+        
+        # Mock query_selector to return button only for slider selectors
+        async def mock_query_selector(selector):
+            slider_selectors = [
+                'button:has-text("Drag the slider")',
+                'button:has-text("slider")',
+                '[role="button"]:has-text("Drag")',
+                'input[type="range"]',
+                '.slider-captcha',
+                '[class*="slider"]',
+            ]
+            if selector in slider_selectors:
+                return mock_button
+            return None
+        
+        mock_page.query_selector = AsyncMock(side_effect=mock_query_selector)
+        
+        # Mock detect_captcha to return False after drag (simulate success)
+        detect_count = [0]
+        
+        async def mock_detect(*args, **kwargs):
+            detect_count[0] += 1
+            # First call: detect slider, subsequent calls: no CAPTCHA
+            if detect_count[0] == 1:
+                return True, "slider"
+            return False, None
+        
+        with patch.object(captcha_solver, 'detect_captcha', side_effect=mock_detect):
+            # Use longer timeout to allow for sleep + check loop
+            result = await captcha_solver.solve(mock_page, timeout=10)
+
+        assert result["type"] == "slider"
+        assert result["success"] is True
+        assert "duration" in result
+
+    @pytest.mark.asyncio
+    async def test_solve_slider_with_playwright_fallback(self, captcha_solver, mock_page):
+        """Test slider solving uses Playwright mouse when pyautogui unavailable."""
+        # Mock slider button
+        mock_button = MagicMock()
+        mock_button.bounding_box = AsyncMock(
+            return_value={"x": 100, "y": 100, "width": 200, "height": 50}
+        )
+        mock_button.hover = AsyncMock()
+        
+        # Mock query_selector to return button only for slider selectors
+        async def mock_query_selector(selector):
+            slider_selectors = [
+                'button:has-text("Drag the slider")',
+                'button:has-text("slider")',
+                '[role="button"]:has-text("Drag")',
+                'input[type="range"]',
+                '.slider-captcha',
+                '[class*="slider"]',
+            ]
+            if selector in slider_selectors:
+                return mock_button
+            return None
+        
+        mock_page.query_selector = AsyncMock(side_effect=mock_query_selector)
+        
+        # Mock mouse methods
+        mock_page.mouse.down = AsyncMock()
+        mock_page.mouse.move = AsyncMock()
+        mock_page.mouse.up = AsyncMock()
+
+        # Ensure pyautogui is not available to trigger Playwright fallback
+        # Also mock detect_captcha to simulate success after drag
+        detect_count = [0]
+        
+        async def mock_detect(*args, **kwargs):
+            detect_count[0] += 1
+            if detect_count[0] == 1:
+                return True, "slider"
+            return False, None
+        
+        with (
+            patch("src.browser.captcha.pyautogui", None),
+            patch("src.browser.captcha.pyautogui_available", False),
+            patch.object(captcha_solver, 'detect_captcha', side_effect=mock_detect),
+        ):
+            # Use longer timeout to allow for sleep + check loop
+            result = await captcha_solver.solve(mock_page, timeout=10)
+
+        # Should have called Playwright mouse methods
+        assert result["type"] == "slider"
+        assert result["success"] is True
+        assert mock_page.mouse.down.called
+        assert mock_page.mouse.move.called
+        assert mock_page.mouse.up.called

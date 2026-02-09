@@ -91,6 +91,7 @@ class BraveSearchTools:
                 const braveSelectors = [
                     // Primary Brave Search web results
                     '#results .snippet:has(a.l1)',
+                    '#results [data-component="Result"]',
                     '.snippet:has(a.l1)',
                     '#results .snippet',
                     '.snippet',

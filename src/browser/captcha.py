@@ -74,6 +74,14 @@ class CaptchaSolver:
             'iframe[src*="google.com/recaptcha"]',
             'iframe[src*="recaptcha.net"]',
         ],
+        "slider": [
+            'button:has-text("Drag the slider")',
+            'button:has-text("slider")',
+            '[role="button"]:has-text("Drag")',
+            'input[type="range"]',
+            '.slider-captcha',
+            '[class*="slider"]',
+        ],
     }
 
     # CAPTCHA challenge indicators
@@ -87,6 +95,9 @@ class CaptchaSolver:
         "security check",
         "please verify",
         "cloudflare",
+        "drag the slider",
+        "confirm you're not a robot",
+        "slide to verify",
     ]
 
     def __init__(self, templates_dir: Optional[str] = None):
@@ -215,6 +226,8 @@ class CaptchaSolver:
                 success = await self._solve_hcaptcha(page, timeout)
             elif captcha_type == "recaptcha":
                 success = await self._solve_recaptcha(page, timeout)
+            elif captcha_type == "slider":
+                success = await self._solve_slider(page, timeout)
             else:
                 success = await self._solve_generic(page, timeout)
 
@@ -349,6 +362,109 @@ class CaptchaSolver:
             logger.error(f"Error solving reCAPTCHA: {e}")
 
         return False
+
+    async def _solve_slider(self, page, timeout: int) -> bool:
+        """Solve slider CAPTCHA (e.g., Brave Search).
+
+        Args:
+            page: Playwright page object
+            timeout: Maximum wait time
+
+        Returns:
+            True if solved successfully
+        """
+        logger.info("Solving slider CAPTCHA")
+
+        # Try to find slider button/element
+        slider_selectors = [
+            'button:has-text("Drag the slider")',
+            'button:has-text("slider")',
+            '[role="button"]:has-text("Drag")',
+            'input[type="range"]',
+            '.slider-captcha button',
+            '[class*="slider"] button',
+        ]
+
+        slider_element = None
+        for selector in slider_selectors:
+            try:
+                element = await page.query_selector(selector)
+                if element:
+                    slider_element = element
+                    logger.info(f"Found slider element with selector: {selector}")
+                    break
+            except Exception:
+                continue
+
+        if not slider_element:
+            logger.warning("Slider element not found")
+            return False
+
+        try:
+            # Get slider bounding box
+            box = await slider_element.bounding_box()
+            if not box:
+                logger.warning("Could not get slider bounding box")
+                return False
+
+            # Calculate drag positions
+            start_x = box["x"] + box["width"] * 0.1  # Start slightly inside
+            start_y = box["y"] + box["height"] / 2
+            end_x = box["x"] + box["width"] * 0.9  # End slightly inside
+            end_y = start_y
+
+            logger.info(f"Slider drag from ({start_x}, {start_y}) to ({end_x}, {end_y})")
+
+            # Perform human-like drag
+            if pyautogui_available and pyautogui is not None:
+                # Move to start position
+                await self._human_click(start_x, start_y)
+                await asyncio.sleep(0.2)
+
+                # Perform drag operation
+                pyautogui.mouseDown()
+                await asyncio.sleep(0.1)
+
+                # Generate human-like drag path
+                path = self._generate_mouse_path(
+                    (int(start_x), int(start_y)),
+                    (int(end_x), int(end_y)),
+                    steps=30
+                )
+
+                for point in path:
+                    pyautogui.moveTo(point[0], point[1])
+                    await asyncio.sleep(random.uniform(0.01, 0.03))
+
+                pyautogui.mouseUp()
+                logger.info("Slider drag completed")
+            else:
+                # Fallback: Use Playwright's drag simulation
+                await slider_element.hover()
+                await page.mouse.down()
+                await page.mouse.move(end_x, end_y, steps=30)
+                await page.mouse.up()
+                logger.info("Slider drag completed via Playwright")
+
+            # Wait for verification
+            await asyncio.sleep(2)
+
+            # Check if CAPTCHA is still present
+            remaining_time = timeout - 3
+            while remaining_time > 0:
+                detected, _ = await self.detect_captcha(page)
+                if not detected:
+                    logger.info("Slider CAPTCHA solved")
+                    return True
+                await asyncio.sleep(0.5)
+                remaining_time -= 0.5
+
+            logger.warning("Slider CAPTCHA still present after timeout")
+            return False
+
+        except Exception as e:
+            logger.error(f"Error solving slider CAPTCHA: {e}")
+            return False
 
     async def _solve_generic(self, page, timeout: int) -> bool:
         """Generic CAPTCHA solving using template matching.
