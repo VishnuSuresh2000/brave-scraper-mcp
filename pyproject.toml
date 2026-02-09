@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brave-scraper-mcp"
+version = "0.1.0"
+description = "MCP server for stealth web scraping with Brave Search"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "mcp[cli]>=1.26.0",
+    "patchright>=1.58.0",
+    "pydantic>=2.0.0",
+    "anyio>=4.0.0",
+    # Stealth / Anti-detection (Phase 2)
+    # CAPTCHA Solving (Phase 3)
+    "pyautogui>=0.9.54",
+    "pillow>=10.0.0",
+    "pytesseract>=0.3.10",
+    "opencv-python-headless>=4.8.0",
+    # Content Extraction (Phase 5)
+    "trafilatura>=1.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+brave-scraper-mcp = "src.server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

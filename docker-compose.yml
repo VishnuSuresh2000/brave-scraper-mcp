@@ -1,0 +1,61 @@
+services:
+  brave-scraper-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: brave-scraper-mcp:latest
+    container_name: brave-scraper-mcp
+    
+    ports:
+      - "8080:8080"
+    
+    volumes:
+      # Persistent browser data for cookies/sessions
+      - browser_data:/home/scraper/browser_data
+    
+    environment:
+      - DISPLAY=:99
+      - STEALTH_MODE=true
+      - CAPTCHA_AUTO_SOLVE=true
+      - PORT=8080
+      - USER_DATA_DIR=/home/scraper/browser_data
+      - MAX_CONTENT_LENGTH=5000
+      - REQUEST_TIMEOUT=30
+    
+    # Required for Chrome/Chromium sandbox
+    cap_add:
+      - SYS_ADMIN
+    
+    # Disable seccomp for Chromium
+    security_opt:
+      - seccomp=unconfined
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  browser_data:
+    driver: local
