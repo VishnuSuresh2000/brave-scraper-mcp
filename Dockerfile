@@ -1,10 +1,7 @@
 # Brave Scraper MCP Server - Optimized Production Dockerfile
-# Uses uv for fast Python package management
+# Uses official uv Python image for fast package management
 
-FROM python:3.12-slim
-
-# Install uv (official way)
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 # Labels
 LABEL maintainer="Ruto AI Assistant"
@@ -69,7 +66,7 @@ WORKDIR /home/scraper/app
 COPY pyproject.toml .
 COPY requirements.txt .
 
-# Install Python dependencies using uv (much faster than pip)
+# Install Python dependencies using uv (fast!)
 RUN uv pip install --system -r requirements.txt
 
 # Install Patchright Chrome

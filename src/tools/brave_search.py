@@ -71,96 +71,157 @@ class BraveSearchTools:
         await self.page.wait_for_timeout(3000)
 
         # Wait for search results to load with increased timeout
+        # Brave Search is a SPA, so we need to wait for JavaScript rendering
         try:
-            await self.page.wait_for_selector("[data-loc='main']", timeout=15000)
-        except:
-            # Try alternative selectors
-            try:
-                await self.page.wait_for_selector(
-                    "#results, .results, [class*='result']", timeout=5000
-                )
-            except:
-                logger.warning("Could not find expected search result selectors, proceeding anyway")
+            # Primary: Wait for any link with external URL
+            await self.page.wait_for_selector("a[href^='https://www.'], a[href^='https://en.'], a[href^='http']", timeout=20000)
+            logger.info("Found external links on page")
+        except Exception as e:
+            logger.warning(f"Could not find expected search result selectors: {e}")
 
-        # Extract search results using JavaScript
+        # Extract search results using JavaScript with multiple fallback strategies
         results = await self.page.evaluate(
             f"""
             () => {{
                 const results = [];
-                const resultElements = document.querySelectorAll('[data-loc="main"] .snippet');
+                const seenUrls = new Set();
 
+                // Strategy 1: Try Brave Search specific selectors (newest structure)
+                // Look for result items in the main content area
+                const braveSelectors = [
+                    // Primary Brave Search structure
+                    '#results .snippet',
+                    '.snippet',
+                    'div[data-loc="main"] > div > div',
+                    'main article',
+                    'article[data-loc]',
+                    // Fallback generic
+                    '.search-result',
+                    '.result-item',
+                    '[data-component="search-result"]'
+                ];
+
+                let resultElements = [];
+                for (const sel of braveSelectors) {{
+                    const elements = document.querySelectorAll(sel);
+                    if (elements.length > 0) {{
+                        resultElements = elements;
+                        console.log('Found elements with selector:', sel, elements.length);
+                        break;
+                    }}
+                }}
+
+                // Strategy 2: If no structured results, find all external links
+                if (resultElements.length === 0) {{
+                    // Get all links that look like search results (external URLs)
+                    const allLinks = Array.from(document.querySelectorAll('a[href^="https://"]'));
+                    const searchLinks = allLinks.filter(a => {{
+                        const href = a.href;
+                        const text = a.textContent.trim();
+                        // Filter out navigation, ads, and internal links
+                        return href &&
+                               text.length > 5 &&
+                               !href.includes('search.brave.com') &&
+                               !href.includes('brave.com/') &&
+                               !href.includes('imgs.search.brave.com') &&
+                               !href.includes('account.brave.com') &&
+                               !a.closest('nav') &&
+                               !a.closest('footer') &&
+                               !a.querySelector('img[alt*="logo"]');  // Exclude logo links
+                    }});
+
+                    // Group by closest parent container to identify result blocks
+                    const containers = new Map();
+                    for (const link of searchLinks) {{
+                        // Find the closest meaningful parent
+                        let parent = link.closest('article, section, div[class*="result"], div[class*="item"], li');
+                        if (!parent) {{
+                            parent = link.parentElement?.parentElement?.parentElement;
+                        }}
+                        if (parent && !containers.has(parent)) {{
+                            containers.set(parent, link);
+                        }}
+                    }}
+
+                    resultElements = Array.from(containers.keys());
+                    console.log('Found containers with links:', resultElements.length);
+                }}
+
+                // Extract results from elements
                 for (let i = 0; i < Math.min(resultElements.length, {count}); i++) {{
                     const element = resultElements[i];
+                    let title = '';
+                    let url = '';
+                    let snippet = '';
 
-                    // Try different selectors for title
-                    const titleEl = element.querySelector('a[data-loc="title"] h2') ||
-                                    element.querySelector('h2') ||
-                                    element.querySelector('a.title') ||
-                                    element.querySelector('a');
+                    // Try to find title and URL
+                    const titleLink = element.querySelector('a.l1') ||
+                                     element.querySelector('a[href^="https://"]') ||
+                                     element.querySelector('a[href^="http://"]') ||
+                                     element.querySelector('a');
+                    if (titleLink) {{
+                        url = titleLink.href;
+                        // Get title from .title class, h2, h3, or the link itself
+                        const titleEl = titleLink.querySelector('.title') || 
+                                        element.querySelector('h2, h3, [class*="title"]');
+                        title = titleEl ? titleEl.textContent.trim() : titleLink.textContent.trim();
+                    }}
 
-                    // Try different selectors for URL
-                    const urlEl = element.querySelector('a[data-loc="title"]') ||
-                                  element.querySelector('a[href]');
+                    // Try to find snippet/description
+                    const snippetEl = element.querySelector('p, [class*="description"], [class*="snippet"], [data-loc="snippet"]');
+                    if (snippetEl) {{
+                        snippet = snippetEl.textContent.trim();
+                    }}
 
-                    // Try different selectors for snippet
-                    const snippetEl = element.querySelector('[data-loc="snippet"]') ||
-                                      element.querySelector('.snippet-content') ||
-                                      element.querySelector('p');
-
-                    const title = titleEl ? titleEl.textContent.trim() : '';
-                    const url = urlEl ? urlEl.href : '';
-                    const snippet = snippetEl ? snippetEl.textContent.trim() : '';
-
-                    if (title && url) {{
+                    // Validate and add result
+                    if (title && url && !seenUrls.has(url) && url.startsWith('http')) {{
+                        seenUrls.add(url);
                         results.push({{
-                            title: title,
+                            title: title.substring(0, 200),  // Limit title length
                             url: url,
-                            snippet: snippet,
-                            position: i + 1
+                            snippet: snippet.substring(0, 500),  // Limit snippet length
+                            position: results.length + 1
                         }});
                     }}
                 }}
 
+                console.log('Extracted results:', results.length);
                 return results;
             }}
             """
         )
 
+        # Fallback: If still no results, try a simpler link extraction
         if not results:
-            # Try alternative selectors if first attempt fails
+            logger.warning("Primary extraction failed, trying simple link extraction")
             results = await self.page.evaluate(
                 f"""
                 () => {{
                     const results = [];
-                    // Alternative: look for result cards
-                    const resultElements = document.querySelectorAll('#results .result, .result, [data-loc="results"] > div');
+                    const seenUrls = new Set();
 
-                    for (let i = 0; i < Math.min(resultElements.length, {count}); i++) {{
-                        const element = resultElements[i];
-                        const links = element.querySelectorAll('a');
+                    // Get all external links with meaningful text
+                    const links = document.querySelectorAll('a[href^="https://"]');
+                    for (let i = 0; i < links.length && results.length < {count}; i++) {{
+                        const link = links[i];
+                        const href = link.href;
+                        const text = link.textContent.trim();
 
-                        for (const link of links) {{
-                            const href = link.href;
-                            const title = link.textContent.trim();
-
-                            if (href && title && title.length > 5) {{
-                                // Look for description near the link
-                                let snippet = '';
-                                const parent = element;
-                                const descEl = parent.querySelector('p, .description, .desc, [data-loc="snippet"]');
-                                if (descEl) {{
-                                    snippet = descEl.textContent.trim();
-                                }}
-
-                                results.push({{
-                                    title: title,
-                                    url: href,
-                                    snippet: snippet,
-                                    position: i + 1
-                                }});
-                                break;
-                            }}
+                        // Skip internal/irrelevant links
+                        if (href.includes('brave.com') ||
+                            href.includes('google.com') ||
+                            text.length < 10 ||
+                            seenUrls.has(href)) {{
+                            continue;
                         }}
+
+                        seenUrls.add(href);
+                        results.push({{
+                            title: text,
+                            url: href,
+                            snippet: '',
+                            position: results.length + 1
+                        }});
                     }}
 
                     return results;
@@ -334,7 +395,7 @@ class BraveSearchTools:
                             // Don't remove if it might be main content
                             const text = el.textContent || '';
                             const isShort = text.length < 200;
-                            const isLinkOnly = el.querySelectorAll('a').length > 0 && text.trim().split(/\s+/).length < 10;
+                            const isLinkOnly = el.querySelectorAll('a').length > 0 && text.trim().split(/\\s+/).length < 10;
                             
                             if (isShort || isLinkOnly) {
                                 el.remove();
