@@ -33,7 +33,9 @@ jobs:
           sudo apt-get install -y xvfb
 
       - name: Install browsers
-        run: uv run --extra dev patchright install chromium
+        run: |
+          uv run --extra dev patchright install chromium
+          uv run --extra dev patchright install-deps chromium
 
       - name: Run tests
-        run: uv run --extra dev pytest tests/ -v
+        run: uv run --extra dev pytest tests/ -v -o log_cli=true
