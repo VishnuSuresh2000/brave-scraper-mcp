@@ -17,7 +17,8 @@ class TestServerInitialization:
     @pytest.mark.asyncio
     async def test_browser_initialization(self, browser_manager):
         """Browser manager initializes correctly."""
-        assert browser_manager.browser is not None
+        # Browser may be None when using persistent context (stealth mode)
+        # assert browser_manager.browser is not None
         assert browser_manager.context is not None
         assert browser_manager.page is not None
 
