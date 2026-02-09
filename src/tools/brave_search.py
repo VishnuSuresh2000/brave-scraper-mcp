@@ -89,7 +89,9 @@ class BraveSearchTools:
                 // Strategy 1: Try Brave Search specific selectors (newest structure)
                 // Look for result items in the main content area
                 const braveSelectors = [
-                    // Primary Brave Search structure
+                    // Primary Brave Search web results
+                    '#results .snippet:has(a.l1)',
+                    '.snippet:has(a.l1)',
                     '#results .snippet',
                     '.snippet',
                     'div[data-loc="main"] > div > div',
