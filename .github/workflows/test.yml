@@ -39,3 +39,5 @@ jobs:
 
       - name: Run tests
         run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" uv run --extra dev pytest tests/ -v -o log_cli=true --timeout=60
+        env:
+          CI: true
