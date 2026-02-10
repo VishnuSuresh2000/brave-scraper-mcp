@@ -2,11 +2,25 @@
 """
 Phase 6: Real-world integration tests
 Tests stealth, Brave Search, and content extraction
+
+NOTE: This file requires a real browser and external network access.
+It is automatically skipped in CI environments.
+Run manually with: python tests/integration_tests.py
 """
+
+import os
+import sys
+
+# Skip entire file in CI environment
+if os.environ.get("CI", "").lower() in ("true", "1"):
+    # Exit early when run directly in CI
+    if __name__ == "__main__":
+        print("Skipping integration tests in CI environment")
+        sys.exit(0)
+    # When collected by pytest, the module will have no tests to run
 
 import asyncio
 import logging
-import sys
 from datetime import datetime
 
 logging.basicConfig(

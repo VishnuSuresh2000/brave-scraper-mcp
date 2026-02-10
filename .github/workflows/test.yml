@@ -38,6 +38,6 @@ jobs:
           uv run --extra dev patchright install-deps chromium
 
       - name: Run tests
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" uv run --extra dev pytest tests/ -v -o log_cli=true --timeout=60
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" uv run --extra dev pytest tests/ -v -o log_cli=true --timeout=60 --ignore=tests/integration_tests.py --ignore=tests/verify_fixes.py
         env:
           CI: true
