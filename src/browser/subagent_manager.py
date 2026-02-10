@@ -71,22 +71,22 @@ class SubAgentBrowserManager:
 
     async def stop(self):
         """Stop the manager and cleanup all browser instances."""
+        if not self._running:
+            return
+
+        logger.info("Stopping SubAgentBrowserManager...")
+        self._running = False
+
+        # Cancel cleanup task BEFORE acquiring lock to avoid deadlock
+        if self._cleanup_task:
+            self._cleanup_task.cancel()
+            try:
+                await self._cleanup_task
+            except asyncio.CancelledError:
+                pass
+            self._cleanup_task = None
+
         async with self._lock:
-            if not self._running:
-                return
-
-            logger.info("Stopping SubAgentBrowserManager...")
-            self._running = False
-
-            # Cancel cleanup task
-            if self._cleanup_task:
-                self._cleanup_task.cancel()
-                try:
-                    await self._cleanup_task
-                except asyncio.CancelledError:
-                    pass
-                self._cleanup_task = None
-
             # Close all browser instances
             for session_id, instance in list(self._browsers.items()):
                 try:
