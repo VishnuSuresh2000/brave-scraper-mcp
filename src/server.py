@@ -179,6 +179,10 @@ class BraveScraperServer:
                                 "default": 10,
                                 "description": "Number of results to return (default: 10)",
                             },
+                            "session_id": {
+                                "type": "string",
+                                "description": "Optional: Sub-agent session ID for browser isolation",
+                            },
                         },
                         "required": ["query"],
                     },
@@ -197,6 +201,10 @@ class BraveScraperServer:
                                 "type": "integer",
                                 "default": 5000,
                                 "description": "Maximum content length in characters (default: 5000)",
+                            },
+                            "session_id": {
+                                "type": "string",
+                                "description": "Optional: Sub-agent session ID for browser isolation",
                             },
                         },
                         "required": ["url"],
@@ -228,21 +236,59 @@ class BraveScraperServer:
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def _execute_tool_isolated(self, name: str, arguments: dict) -> str:
-        """Execute tool in an isolated browser context (for search/extract)."""
-        async with self.browser_manager.isolated_context() as page:
-            if name == "brave_search":
-                brave_tools = BraveSearchTools(page)
-                response = await brave_tools.search(
-                    query=arguments["query"], count=arguments.get("count", 10)
-                )
-                return self._format_search_response(response)
-
-            elif name == "brave_extract":
-                brave_tools = BraveSearchTools(page)
-                content = await brave_tools.extract(
-                    url=arguments["url"], max_length=arguments.get("max_length", 5000)
-                )
-                return self._format_extract_response(content)
+        """Execute tool in an isolated browser context (for search/extract).
+        
+        Supports session_id for sub-agent browser isolation:
+        - If session_id is provided, uses SubAgentBrowserManager
+        - Otherwise uses shared browser with isolated context
+        """
+        session_id = arguments.get("session_id")
+        
+        if session_id and self.browser_manager.subagent_manager:
+            # Use sub-agent browser isolation
+            logger.info(f"Using sub-agent browser for session: {session_id}")
+            browser_instance = await self.browser_manager.get_subagent_browser(session_id)
+            
+            # Get or create a page in the sub-agent's browser
+            tabs = await browser_instance.list_tabs()
+            if tabs:
+                # Reuse existing tab
+                page = await browser_instance.get_tab(list(tabs.keys())[0])
+            else:
+                # Create new tab
+                _, page = await browser_instance.create_tab()
+            
+            try:
+                if name == "brave_search":
+                    brave_tools = BraveSearchTools(page)
+                    response = await brave_tools.search(
+                        query=arguments["query"], count=arguments.get("count", 10)
+                    )
+                    return self._format_search_response(response)
+                elif name == "brave_extract":
+                    brave_tools = BraveSearchTools(page)
+                    content = await brave_tools.extract(
+                        url=arguments["url"], max_length=arguments.get("max_length", 5000)
+                    )
+                    return self._format_extract_response(content)
+            finally:
+                # Update activity timestamp
+                browser_instance.update_activity()
+        else:
+            # Use shared browser with isolated context (default behavior)
+            async with self.browser_manager.isolated_context() as page:
+                if name == "brave_search":
+                    brave_tools = BraveSearchTools(page)
+                    response = await brave_tools.search(
+                        query=arguments["query"], count=arguments.get("count", 10)
+                    )
+                    return self._format_search_response(response)
+                elif name == "brave_extract":
+                    brave_tools = BraveSearchTools(page)
+                    content = await brave_tools.extract(
+                        url=arguments["url"], max_length=arguments.get("max_length", 5000)
+                    )
+                    return self._format_extract_response(content)
 
         return "Unknown tool"
 
