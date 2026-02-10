@@ -113,9 +113,31 @@ class BraveSearchTools:
                     selector_list,
                     timeout=15000,
                 )
-                logger.info("AI Summary detected on page")
-                # Wait for the AI text to finish generating (streaming effect)
-                await self.page.wait_for_timeout(3000)
+                logger.info("AI Summary element detected on page")
+                
+                # Wait for the AI text to actually populate (not just the container)
+                # The element appears before text is generated
+                for i in range(10):
+                    await self.page.wait_for_timeout(500)
+                    # Check if any AI element has meaningful text
+                    has_text = await self.page.evaluate("""
+                        () => {
+                            const selectors = ['.answer', '[class*="answer"]', '.summarizer'];
+                            for (const sel of selectors) {
+                                const el = document.querySelector(sel);
+                                if (el && el.textContent.trim().length > 50) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                    """)
+                    if has_text:
+                        logger.info(f"AI Summary text populated after {(i+1)*500}ms")
+                        break
+                else:
+                    logger.info("AI Summary element found but text not populated after 5s")
+                    
             except Exception as e:
                 logger.info(f"AI Summary not found or timed out: {e}")
         except Exception as e:
