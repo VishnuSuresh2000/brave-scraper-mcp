@@ -8,6 +8,7 @@ Supports both stdio and streamable-http transports.
 import argparse
 import asyncio
 import logging
+import os
 from typing import Optional
 
 from mcp.server import Server
@@ -23,6 +24,9 @@ from src.tools.brave_search import BraveSearchTools, SearchResult, ExtractedCont
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("brave-scraper-mcp")
+
+# Environment variable configuration
+BROWSER_TIMEOUT_MINUTES = int(os.environ.get("BROWSER_TIMEOUT_MINUTES", "30"))
 
 
 class BraveScraperServer:
@@ -209,19 +213,84 @@ class BraveScraperServer:
         """Core logic for executing tools with error handling."""
         logger.info(f"Calling tool: {name} with args: {arguments}")
 
-        if not self.browser_manager or not self.browser_manager.page:
+        if not self.browser_manager:
             return [TextContent(type="text", text="Error: Browser not initialized")]
 
         try:
-            result = await self._execute_tool(name, arguments)
+            # Use isolated context for search/extract to prevent race conditions
+            if name in ("brave_search", "brave_extract"):
+                result = await self._execute_tool_isolated(name, arguments)
+            else:
+                result = await self._execute_tool(name, arguments)
             return [TextContent(type="text", text=str(result))]
         except Exception as e:
             logger.error(f"Tool execution failed: {e}")
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
+    async def _execute_tool_isolated(self, name: str, arguments: dict) -> str:
+        """Execute tool in an isolated browser context (for search/extract)."""
+        async with self.browser_manager.isolated_context() as page:
+            if name == "brave_search":
+                brave_tools = BraveSearchTools(page)
+                response = await brave_tools.search(
+                    query=arguments["query"], count=arguments.get("count", 10)
+                )
+                return self._format_search_response(response)
+
+            elif name == "brave_extract":
+                brave_tools = BraveSearchTools(page)
+                content = await brave_tools.extract(
+                    url=arguments["url"], max_length=arguments.get("max_length", 5000)
+                )
+                return self._format_extract_response(content)
+
+        return "Unknown tool"
+
+    def _format_search_response(self, response) -> str:
+        """Format search response as readable text."""
+        formatted_output = []
+
+        # Add AI Summary if available
+        if response.ai_summary:
+            formatted_output.append("🤖 BRAVE AI SUMMARY")
+            formatted_output.append("=" * 20)
+            formatted_output.append(response.ai_summary.text)
+            if response.ai_summary.sources:
+                formatted_output.append("\nSources:")
+                for source in response.ai_summary.sources:
+                    formatted_output.append(f"- {source['title']}: {source['url']}")
+            formatted_output.append("\n" + "=" * 20 + "\n")
+
+        # Add Web Results
+        formatted_output.append(f"Web Results for '{response.query}':")
+        for result in response.results:
+            formatted_output.append(
+                f"{result.position}. {result.title}\n   URL: {result.url}\n   {result.snippet}\n"
+            )
+
+        if not response.results and not response.ai_summary:
+            return "No results found"
+
+        return "\n".join(formatted_output)
+
+    def _format_extract_response(self, content) -> str:
+        """Format extracted content as readable text."""
+        result_text = f"Title: {content.title}\n"
+        result_text += f"URL: {content.url}\n"
+        result_text += f"Word Count: {content.word_count}\n\n"
+
+        if content.summary:
+            result_text += f"Summary:\n{content.summary}\n\n"
+
+        result_text += f"Content:\n{content.content}"
+        return result_text
+
     async def _execute_tool(self, name: str, arguments: dict) -> str:
-        """Route tool call to appropriate handler."""
+        """Route tool call to appropriate handler (uses shared page for non-isolated tools)."""
         page = self.browser_manager.page
+
+        if not page:
+            return "Error: Browser page not available"
 
         # Navigation tools
         if name == "browser_navigate":
@@ -272,49 +341,6 @@ class BraveScraperServer:
                 error_msg = result.get("error", "Unknown error")
                 return f"Failed to solve CAPTCHA: {error_msg}"
 
-        # Brave Search tools
-        elif name == "brave_search":
-            if not self.brave_search_tools:
-                self.brave_search_tools = BraveSearchTools(page)
-
-            results = await self.brave_search_tools.search(
-                query=arguments["query"], count=arguments.get("count", 10)
-            )
-
-            # Format results as readable text
-            formatted_results = []
-            for result in results:
-                formatted_results.append(
-                    f"{result.position}. {result.title}\n"
-                    f"   URL: {result.url}\n"
-                    f"   {result.snippet}\n"
-                )
-
-            if not formatted_results:
-                return "No results found"
-
-            return f"Found {len(results)} results:\n\n" + "\n".join(formatted_results)
-
-        elif name == "brave_extract":
-            if not self.brave_search_tools:
-                self.brave_search_tools = BraveSearchTools(page)
-
-            content = await self.brave_search_tools.extract(
-                url=arguments["url"], max_length=arguments.get("max_length", 5000)
-            )
-
-            # Format extracted content
-            result_text = f"Title: {content.title}\n"
-            result_text += f"URL: {content.url}\n"
-            result_text += f"Word Count: {content.word_count}\n\n"
-
-            if content.summary:
-                result_text += f"Summary:\n{content.summary}\n\n"
-
-            result_text += f"Content:\n{content.content}"
-
-            return result_text
-
         else:
             return f"Unknown tool: {name}"
 
@@ -359,9 +385,7 @@ class BraveScraperServer:
             return JSONResponse({"status": "healthy", "server": "brave-scraper-mcp"})
 
         # Create session manager
-        session_manager = StreamableHTTPSessionManager(
-            self.server, stateless=True
-        )
+        session_manager = StreamableHTTPSessionManager(self.server, stateless=True)
 
         @asynccontextmanager
         async def lifespan(app):
@@ -373,11 +397,12 @@ class BraveScraperServer:
             routes=[
                 Route("/health", health_check, methods=["GET"]),
                 Mount("/mcp", session_manager.handle_request),
-            ]
+            ],
         )
 
         # Run with uvicorn
         import uvicorn
+
         config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
         server = uvicorn.Server(config)
 

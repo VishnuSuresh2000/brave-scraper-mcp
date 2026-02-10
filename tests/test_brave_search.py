@@ -112,9 +112,10 @@ class TestBraveSearchTools:
                 "position": 2,
             },
         ]
-        mock_page.evaluate = AsyncMock(return_value=mock_results)
+        mock_page.evaluate = AsyncMock(return_value={"results": mock_results, "aiSummary": None})
 
-        results = await search_tools.search("test query", count=5)
+        response = await search_tools.search("test query", count=5)
+        results = response.results
 
         assert len(results) == 2
         assert results[0].title == "Result 1"
@@ -131,9 +132,10 @@ class TestBraveSearchTools:
     @pytest.mark.asyncio
     async def test_search_empty_results(self, search_tools, mock_page):
         """Test search with no results."""
-        mock_page.evaluate = AsyncMock(return_value=[])
+        mock_page.evaluate = AsyncMock(return_value={"results": [], "aiSummary": None})
 
-        results = await search_tools.search("no results query", count=10)
+        response = await search_tools.search("no results query", count=10)
+        results = response.results
 
         assert len(results) == 0
         assert isinstance(results, list)
@@ -150,9 +152,10 @@ class TestBraveSearchTools:
             }
             for i in range(1, 21)  # 20 results
         ]
-        mock_page.evaluate = AsyncMock(return_value=mock_results)
+        mock_page.evaluate = AsyncMock(return_value={"results": mock_results, "aiSummary": None})
 
-        results = await search_tools.search("query", count=5)
+        response = await search_tools.search("query", count=5)
+        results = response.results
 
         assert len(results) == 5
         assert results[-1].position == 5
@@ -160,7 +163,7 @@ class TestBraveSearchTools:
     @pytest.mark.asyncio
     async def test_search_url_encoding(self, search_tools, mock_page):
         """Test query URL encoding."""
-        mock_page.evaluate = AsyncMock(return_value=[])
+        mock_page.evaluate = AsyncMock(return_value={"results": [], "aiSummary": None})
 
         await search_tools.search("query with spaces & special chars!", count=5)
 
@@ -395,23 +398,24 @@ class TestBraveSearchConvenienceFunction:
         mock_results = [
             {"title": "Result 1", "url": "https://example.com", "snippet": "Snippet", "position": 1}
         ]
-        mock_page.evaluate = AsyncMock(return_value=mock_results)
+        mock_page.evaluate = AsyncMock(return_value={"results": mock_results, "aiSummary": None})
         mock_page.goto = AsyncMock()
         mock_page.wait_for_selector = AsyncMock()
 
+        from src.tools.brave_search import SearchResponse
         with patch.object(
             BraveSearchTools,
             "search",
-            return_value=[
-                SearchResult(
-                    title="Result 1", url="https://example.com", snippet="Snippet", position=1
-                )
-            ],
+            return_value=SearchResponse(
+                query="query",
+                results=[SearchResult(title="Result 1", url="https://example.com", snippet="Snippet", position=1)],
+                ai_summary=None
+            ),
         ):
-            results = await brave_search(mock_page, "query", count=5)
+            response = await brave_search(mock_page, "query", count=5)
 
-        assert len(results) == 1
-        assert results[0].title == "Result 1"
+        assert len(response.results) == 1
+        assert response.results[0].title == "Result 1"
 
 
 class TestBraveExtractConvenienceFunction:
@@ -461,12 +465,13 @@ class TestIntegration:
                 "position": 2,
             },
         ]
-        mock_page.evaluate = AsyncMock(return_value=search_results)
+        mock_page.evaluate = AsyncMock(return_value={"results": search_results, "aiSummary": None})
 
         tools = BraveSearchTools(mock_page)
 
         # Search
-        results = await tools.search("test", count=2)
+        response = await tools.search("test", count=2)
+        results = response.results
         assert len(results) == 2
 
         # Mock for extraction
@@ -508,11 +513,11 @@ class TestErrorHandling:
     async def test_search_handles_selector_timeout(self, search_tools, mock_page):
         """Test search handles selector timeout gracefully (logs warning, proceeds)."""
         mock_page.wait_for_selector = AsyncMock(side_effect=Exception("Timeout"))
-        mock_page.evaluate = AsyncMock(return_value=[])  # Return empty results
+        mock_page.evaluate = AsyncMock(return_value={"results": [], "aiSummary": None})
 
         # Should NOT raise - code catches timeout and proceeds anyway
-        results = await search_tools.search("query")
-        assert results == []  # Returns empty list when selectors fail
+        response = await search_tools.search("query")
+        assert response.results == []  # Returns empty results when selectors fail
 
     @pytest.mark.asyncio
     async def test_extract_handles_goto_error(self, search_tools, mock_page):
@@ -562,9 +567,10 @@ class TestSearchResultFiltering:
                 "position": 3,
             },
         ]
-        mock_page.evaluate = AsyncMock(return_value=mock_results)
+        mock_page.evaluate = AsyncMock(return_value={"results": mock_results, "aiSummary": None})
 
-        results = await search_tools.search("query", count=10)
+        response = await search_tools.search("query", count=10)
+        results = response.results
 
         assert len(results) == 3  # All are included, filtering happens in JS
         # Note: In real implementation, empty titles might be filtered
@@ -581,9 +587,10 @@ class TestSearchResultFiltering:
             },
             {"title": "Invalid", "url": "", "snippet": "Snippet", "position": 2},  # No URL
         ]
-        mock_page.evaluate = AsyncMock(return_value=mock_results)
+        mock_page.evaluate = AsyncMock(return_value={"results": mock_results, "aiSummary": None})
 
-        results = await search_tools.search("query", count=10)
+        response = await search_tools.search("query", count=10)
+        results = response.results
 
         assert len(results) == 2  # Both included, JS filtering logic applies
 

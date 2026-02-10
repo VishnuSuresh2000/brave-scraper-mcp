@@ -30,6 +30,21 @@ class SearchResult(BaseModel):
     position: int
 
 
+class AISummary(BaseModel):
+    """AI-generated summary from Brave Search."""
+
+    text: str
+    sources: List[dict] = []  # List of {title, url}
+
+
+class SearchResponse(BaseModel):
+    """Complete search response with optional AI summary."""
+
+    ai_summary: Optional[AISummary] = None
+    results: List[SearchResult]
+    query: str
+
+
 class ExtractedContent(BaseModel):
     """Model for extracted content data."""
 
@@ -48,7 +63,7 @@ class BraveSearchTools:
     def __init__(self, page: Page):
         self.page = page
 
-    async def search(self, query: str, count: int = 10) -> List[SearchResult]:
+    async def search(self, query: str, count: int = 10) -> SearchResponse:
         """Search Brave Search and return structured results.
 
         Args:
@@ -56,7 +71,7 @@ class BraveSearchTools:
             count: Number of results to return (default: 10)
 
         Returns:
-            List of SearchResult objects
+            SearchResponse object containing results and optional AI summary
         """
         logger.info(f"Searching Brave for: {query} (count={count})")
 
@@ -74,22 +89,87 @@ class BraveSearchTools:
         # Brave Search is a SPA, so we need to wait for JavaScript rendering
         try:
             # Primary: Wait for any link with external URL
-            await self.page.wait_for_selector("a[href^='https://www.'], a[href^='https://en.'], a[href^='http']", timeout=20000)
+            await self.page.wait_for_selector(
+                "a[href^='https://www.'], a[href^='https://en.'], a[href^='http']", timeout=20000
+            )
             logger.info("Found external links on page")
+
+            # Optional: Wait for AI summary to appear (it can be slow)
+            logger.info("Waiting for AI Summary...")
+            try:
+                # Target the summarizer container specifically
+                await self.page.wait_for_selector(
+                    '[data-component="Summarizer"], .summarizer-container, #answer-box, .summary',
+                    timeout=10000,
+                )
+                logger.info("AI Summary detected on page")
+                # Wait a bit for the text to finish "typing" if it's animated
+                await self.page.wait_for_timeout(2000)
+            except Exception as e:
+                logger.info(f"AI Summary not found or timed out: {e}")
         except Exception as e:
             logger.warning(f"Could not find expected search result selectors: {e}")
 
-        # Extract search results using JavaScript with multiple fallback strategies
-        results = await self.page.evaluate(
+        # Extract search results and AI summary using JavaScript
+        data = await self.page.evaluate(
             f"""
             () => {{
                 const results = [];
                 const seenUrls = new Set();
+                let aiSummary = null;
 
+                // --- AI Summary Extraction ---
+                const aiSummarySelectors = [
+                    '[data-component="Summarizer"]',
+                    '.summarizer-container',
+                    '#answer-box',
+                    '.summary',
+                    '#summary',
+                    '[class*="ai-answer"]',
+                    '[class*="summarizer"]'
+                ];
+
+                for (const sel of aiSummarySelectors) {{
+                    const el = document.querySelector(sel);
+                    if (el) {{
+                        console.log('AI Summary found with selector:', sel);
+                        // Try to find the actual text content container
+                        const textEl = el.querySelector('.prose, .summary-text, [class*="content"], [class*="answer"]') || el;
+                        
+                        // Get text but remove citations/links for the clean text field
+                        // Create a clone to manipulate
+                        const clone = textEl.cloneNode(true);
+                        // Remove citation links
+                        clone.querySelectorAll('sup, .citation, a[href*="#ref"], [class*="source"], [class*="cite"]').forEach(e => e.remove());
+                        const text = clone.textContent.trim().replace(/\\s+/g, ' ');
+                        
+                        // Extract citations from the original element
+                        const sources = Array.from(el.querySelectorAll('a[href]')).map(a => ({{
+                            title: a.textContent.trim() || a.hostname,
+                            url: a.href
+                        }})).filter(s => s.url.startsWith('http') && !s.url.includes('brave.com') && s.title.length > 1);
+
+                        // Deduplicate sources
+                        const uniqueSources = [];
+                        const seenSourceUrls = new Set();
+                        for (const s of sources) {{
+                            if (!seenSourceUrls.has(s.url)) {{
+                                seenSourceUrls.add(s.url);
+                                uniqueSources.push(s);
+                            }}
+                        }}
+
+                        if (text.length > 20) {{
+                            aiSummary = {{ text, sources: uniqueSources }};
+                            console.log('Extracted AI Summary text length:', text.length);
+                            break;
+                        }}
+                    }}
+                }}
+
+                // --- Web Results Extraction ---
                 // Strategy 1: Try Brave Search specific selectors (newest structure)
-                // Look for result items in the main content area
                 const braveSelectors = [
-                    // Primary Brave Search web results
                     '#results .snippet:has(a.l1)',
                     '#results [data-component="Result"]',
                     '.snippet:has(a.l1)',
@@ -98,7 +178,6 @@ class BraveSearchTools:
                     'div[data-loc="main"] > div > div',
                     'main article',
                     'article[data-loc]',
-                    // Fallback generic
                     '.search-result',
                     '.result-item',
                     '[data-component="search-result"]'
@@ -109,45 +188,32 @@ class BraveSearchTools:
                     const elements = document.querySelectorAll(sel);
                     if (elements.length > 0) {{
                         resultElements = elements;
-                        console.log('Found elements with selector:', sel, elements.length);
                         break;
                     }}
                 }}
 
                 // Strategy 2: If no structured results, find all external links
                 if (resultElements.length === 0) {{
-                    // Get all links that look like search results (external URLs)
                     const allLinks = Array.from(document.querySelectorAll('a[href^="https://"]'));
                     const searchLinks = allLinks.filter(a => {{
                         const href = a.href;
                         const text = a.textContent.trim();
-                        // Filter out navigation, ads, and internal links
                         return href &&
                                text.length > 5 &&
                                !href.includes('search.brave.com') &&
                                !href.includes('brave.com/') &&
                                !href.includes('imgs.search.brave.com') &&
-                               !href.includes('account.brave.com') &&
                                !a.closest('nav') &&
-                               !a.closest('footer') &&
-                               !a.querySelector('img[alt*="logo"]');  // Exclude logo links
+                               !a.closest('footer');
                     }});
 
-                    // Group by closest parent container to identify result blocks
                     const containers = new Map();
                     for (const link of searchLinks) {{
-                        // Find the closest meaningful parent
-                        let parent = link.closest('article, section, div[class*="result"], div[class*="item"], li');
-                        if (!parent) {{
-                            parent = link.parentElement?.parentElement?.parentElement;
-                        }}
-                        if (parent && !containers.has(parent)) {{
-                            containers.set(parent, link);
-                        }}
+                        let parent = link.closest('article, section, div[class*="result"], div[class*=\"item\"], li');
+                        if (!parent) parent = link.parentElement?.parentElement?.parentElement;
+                        if (parent && !containers.has(parent)) containers.set(parent, link);
                     }}
-
                     resultElements = Array.from(containers.keys());
-                    console.log('Found containers with links:', resultElements.length);
                 }}
 
                 // Extract results from elements
@@ -157,82 +223,40 @@ class BraveSearchTools:
                     let url = '';
                     let snippet = '';
 
-                    // Try to find title and URL
                     const titleLink = element.querySelector('a.l1') ||
                                      element.querySelector('a[href^="https://"]') ||
                                      element.querySelector('a[href^="http://"]') ||
                                      element.querySelector('a');
                     if (titleLink) {{
                         url = titleLink.href;
-                        // Get title from .title class, h2, h3, or the link itself
                         const titleEl = titleLink.querySelector('.title') || 
                                         element.querySelector('h2, h3, [class*="title"]');
                         title = titleEl ? titleEl.textContent.trim() : titleLink.textContent.trim();
                     }}
 
-                    // Try to find snippet/description
                     const snippetEl = element.querySelector('p, [class*="description"], [class*="snippet"], [data-loc="snippet"]');
-                    if (snippetEl) {{
-                        snippet = snippetEl.textContent.trim();
-                    }}
+                    if (snippetEl) snippet = snippetEl.textContent.trim();
 
-                    // Validate and add result
                     if (title && url && !seenUrls.has(url) && url.startsWith('http')) {{
                         seenUrls.add(url);
                         results.push({{
-                            title: title.substring(0, 200),  // Limit title length
+                            title: title.substring(0, 200),
                             url: url,
-                            snippet: snippet.substring(0, 500),  // Limit snippet length
+                            snippet: snippet.substring(0, 500),
                             position: results.length + 1
                         }});
                     }}
                 }}
 
-                console.log('Extracted results:', results.length);
-                return results;
+                return {{ results, aiSummary }};
             }}
             """
         )
 
-        # Fallback: If still no results, try a simpler link extraction
-        if not results:
-            logger.warning("Primary extraction failed, trying simple link extraction")
-            results = await self.page.evaluate(
-                f"""
-                () => {{
-                    const results = [];
-                    const seenUrls = new Set();
+        results = data.get("results", [])
+        ai_summary_data = data.get("aiSummary")
 
-                    // Get all external links with meaningful text
-                    const links = document.querySelectorAll('a[href^="https://"]');
-                    for (let i = 0; i < links.length && results.length < {count}; i++) {{
-                        const link = links[i];
-                        const href = link.href;
-                        const text = link.textContent.trim();
-
-                        // Skip internal/irrelevant links
-                        if (href.includes('brave.com') ||
-                            href.includes('google.com') ||
-                            text.length < 10 ||
-                            seenUrls.has(href)) {{
-                            continue;
-                        }}
-
-                        seenUrls.add(href);
-                        results.push({{
-                            title: text,
-                            url: href,
-                            snippet: '',
-                            position: results.length + 1
-                        }});
-                    }}
-
-                    return results;
-                }}
-                """
-            )
-
-        # Convert to SearchResult models
+        # Convert to Pydantic models
         search_results = []
         for i, result in enumerate(results[:count]):
             search_results.append(
@@ -244,8 +268,17 @@ class BraveSearchTools:
                 )
             )
 
+        ai_summary = None
+        if ai_summary_data:
+            ai_summary = AISummary(
+                text=ai_summary_data.get("text", ""), sources=ai_summary_data.get("sources", [])
+            )
+
         logger.info(f"Found {len(search_results)} search results")
-        return search_results
+        if ai_summary:
+            logger.info("Extracted AI summary")
+
+        return SearchResponse(query=query, results=search_results, ai_summary=ai_summary)
 
     async def extract(self, url: str, max_length: int = 5000) -> ExtractedContent:
         """Extract clean content from a URL.
@@ -730,31 +763,49 @@ class BraveSearchTools:
 
 
 # Convenience functions for direct usage
-async def brave_search(page: Page, query: str, count: int = 10) -> List[SearchResult]:
+async def brave_search(
+    page: Page, query: str, count: int = 10, session_id: Optional[str] = None, manager=None
+) -> SearchResponse:
     """Convenience function to search Brave.
 
     Args:
-        page: Playwright page object
+        page: Playwright page object (used if no session_id provided)
         query: Search query
         count: Number of results
+        session_id: Optional sub-agent session ID to use isolated browser
+        manager: Optional SubAgentBrowserManager instance (required if session_id provided)
 
     Returns:
-        List of SearchResult objects
+        SearchResponse object containing results and optional AI summary
     """
+    if session_id and manager:
+        # Use sub-agent browser
+        browser_instance = await manager.get_or_create_browser(session_id)
+        page = browser_instance.page
+    # If no session_id, use the provided page (existing behavior)
     tools = BraveSearchTools(page)
     return await tools.search(query, count)
 
 
-async def brave_extract(page: Page, url: str, max_length: int = 5000) -> ExtractedContent:
+async def brave_extract(
+    page: Page, url: str, max_length: int = 5000, session_id: Optional[str] = None, manager=None
+) -> ExtractedContent:
     """Convenience function to extract content.
 
     Args:
-        page: Playwright page object
+        page: Playwright page object (used if no session_id provided)
         url: URL to extract from
         max_length: Maximum content length
+        session_id: Optional sub-agent session ID to use isolated browser
+        manager: Optional SubAgentBrowserManager instance (required if session_id provided)
 
     Returns:
         ExtractedContent object
     """
+    if session_id and manager:
+        # Use sub-agent browser
+        browser_instance = await manager.get_or_create_browser(session_id)
+        page = browser_instance.page
+    # If no session_id, use the provided page (existing behavior)
     tools = BraveSearchTools(page)
     return await tools.extract(url, max_length)
