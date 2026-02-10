@@ -97,14 +97,25 @@ class BraveSearchTools:
             # Optional: Wait for AI summary to appear (it can be slow)
             logger.info("Waiting for AI Summary...")
             try:
-                # Target the summarizer container specifically
+                # Brave's AI answer uses multiple possible selectors
+                # Updated 2026-02: Brave uses .answer class and data attributes
+                ai_selectors = [
+                    '.answer',  # Main AI answer container
+                    '[data-component="Summarizer"]',
+                    '.summarizer',
+                    '#answer-box',
+                    '[class*="answer"]',
+                    '[class*="ai-response"]',
+                    '.snippet'
+                ]
+                selector_list = ', '.join(ai_selectors)
                 await self.page.wait_for_selector(
-                    '[data-component="Summarizer"], .summarizer-container, #answer-box, .summary',
-                    timeout=10000,
+                    selector_list,
+                    timeout=15000,
                 )
                 logger.info("AI Summary detected on page")
-                # Wait a bit for the text to finish "typing" if it's animated
-                await self.page.wait_for_timeout(2000)
+                # Wait for the AI text to finish generating (streaming effect)
+                await self.page.wait_for_timeout(3000)
             except Exception as e:
                 logger.info(f"AI Summary not found or timed out: {e}")
         except Exception as e:
@@ -119,14 +130,18 @@ class BraveSearchTools:
                 let aiSummary = null;
 
                 // --- AI Summary Extraction ---
+                // Updated 2026-02: Brave uses .answer class for AI responses
                 const aiSummarySelectors = [
+                    '.answer',  // Primary Brave AI answer class
                     '[data-component="Summarizer"]',
                     '.summarizer-container',
+                    '.summarizer',
                     '#answer-box',
                     '.summary',
                     '#summary',
                     '[class*="ai-answer"]',
-                    '[class*="summarizer"]'
+                    '[class*="ai-response"]',
+                    '.snippet[data-domain]'
                 ];
 
                 for (const sel of aiSummarySelectors) {{
@@ -134,20 +149,21 @@ class BraveSearchTools:
                     if (el) {{
                         console.log('AI Summary found with selector:', sel);
                         // Try to find the actual text content container
-                        const textEl = el.querySelector('.prose, .summary-text, [class*="content"], [class*="answer"]') || el;
+                        const textEl = el.querySelector('.prose, .summary-text, [class*="content"], [class*="answer"], p') || el;
                         
                         // Get text but remove citations/links for the clean text field
                         // Create a clone to manipulate
                         const clone = textEl.cloneNode(true);
-                        // Remove citation links
-                        clone.querySelectorAll('sup, .citation, a[href*="#ref"], [class*="source"], [class*="cite"]').forEach(e => e.remove());
+                        // Remove citation links and superscripts
+                        clone.querySelectorAll('sup, .citation, a[href*="#ref"], [class*="source"], [class*="cite"], .reference').forEach(e => e.remove());
                         const text = clone.textContent.trim().replace(/\\s+/g, ' ');
                         
-                        // Extract citations from the original element
-                        const sources = Array.from(el.querySelectorAll('a[href]')).map(a => ({{
+                        // Extract citations from the original element (look in parent too)
+                        const citationContainer = el.closest('[class*="answer"]') || el;
+                        const sources = Array.from(citationContainer.querySelectorAll('a[href]')).map(a => ({{
                             title: a.textContent.trim() || a.hostname,
                             url: a.href
-                        }})).filter(s => s.url.startsWith('http') && !s.url.includes('brave.com') && s.title.length > 1);
+                        }})).filter(s => s.url.startsWith('http') && !s.url.includes('search.brave.com') && !s.url.includes('imgs.search.brave.com') && s.title.length > 1);
 
                         // Deduplicate sources
                         const uniqueSources = [];
