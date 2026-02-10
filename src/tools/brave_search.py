@@ -121,6 +121,40 @@ class BraveSearchTools:
         except Exception as e:
             logger.warning(f"Could not find expected search result selectors: {e}")
 
+        # Debug: Check what's actually in the page for AI summary
+        ai_debug = await self.page.evaluate("""
+            () => {
+                const debug = {};
+                
+                // Check the chatllm-answer-list structure specifically
+                const answerEl = document.querySelector('.chatllm-answer-list, [class*="chatllm-answer"], [class*="answer"]');
+                if (answerEl) {
+                    debug.parentClass = answerEl.className;
+                    debug.parentText = answerEl.textContent.trim().substring(0, 300);
+                    debug.childrenCount = answerEl.children.length;
+                    
+                    // Check each child
+                    debug.children = [];
+                    for (const child of answerEl.children) {
+                        debug.children.push({
+                            tag: child.tagName,
+                            class: child.className,
+                            text: child.textContent.trim().substring(0, 200)
+                        });
+                    }
+                    
+                    // Also check for any bold/strong elements that might contain the subject
+                    const strongs = answerEl.querySelectorAll('strong, b, .bold');
+                    debug.strongTexts = Array.from(strongs).map(s => s.textContent.trim());
+                }
+                
+                return debug;
+            }
+        """)
+        
+        if ai_debug:
+            logger.info(f"AI Debug info: {ai_debug}")
+        
         # Extract search results and AI summary using JavaScript
         data = await self.page.evaluate(
             f"""
@@ -130,9 +164,12 @@ class BraveSearchTools:
                 let aiSummary = null;
 
                 // --- AI Summary Extraction ---
-                // Updated 2026-02: Brave uses .answer class for AI responses
+                // Updated 2026-02-10: Brave uses .chatllm-answer-list class for AI responses
                 const aiSummarySelectors = [
-                    '.answer',  // Primary Brave AI answer class
+                    '.chatllm-answer-list',  // Brave's current AI answer class
+                    '[class*="chatllm-answer"]',
+                    '[class*="answer"]',  // Any class containing "answer"
+                    '.answer',
                     '[data-component="Summarizer"]',
                     '.summarizer-container',
                     '.summarizer',
@@ -140,23 +177,27 @@ class BraveSearchTools:
                     '.summary',
                     '#summary',
                     '[class*="ai-answer"]',
-                    '[class*="ai-response"]',
-                    '.snippet[data-domain]'
+                    '[class*="ai-response"]'
                 ];
 
                 for (const sel of aiSummarySelectors) {{
                     const el = document.querySelector(sel);
                     if (el) {{
-                        console.log('AI Summary found with selector:', sel);
-                        // Try to find the actual text content container
-                        const textEl = el.querySelector('.prose, .summary-text, [class*="content"], [class*="answer"], p') || el;
+                        console.log('AI Summary found with selector:', sel, 'class:', el.className);
                         
-                        // Get text but remove citations/links for the clean text field
-                        // Create a clone to manipulate
-                        const clone = textEl.cloneNode(true);
-                        // Remove citation links and superscripts
-                        clone.querySelectorAll('sup, .citation, a[href*="#ref"], [class*="source"], [class*="cite"], .reference').forEach(e => e.remove());
+                        // Debug: Log the full element text and child structure
+                        const fullText = el.textContent.trim();
+                        console.log('Full element text (first 200 chars):', fullText.substring(0, 200));
+                        
+                        // Get text directly from the element itself (not looking for children)
+                        // Brave's chatllm-answer-list has the text directly
+                        const clone = el.cloneNode(true);
+                        
+                        // Remove only citation/reference elements, not content
+                        clone.querySelectorAll('sup.citation, .cite-link, [data-cite]').forEach(e => e.remove());
+                        
                         const text = clone.textContent.trim().replace(/\\s+/g, ' ');
+                        console.log('Extracted text length:', text.length, 'preview:', text.substring(0, 150));
                         
                         // Extract citations from the original element (look in parent too)
                         const citationContainer = el.closest('[class*="answer"]') || el;
@@ -272,6 +313,13 @@ class BraveSearchTools:
         results = data.get("results", [])
         ai_summary_data = data.get("aiSummary")
 
+        # Debug logging for AI summary extraction
+        if ai_summary_data:
+            extracted_text = ai_summary_data.get("text", "")
+            logger.info(f"AI Summary extracted - length: {len(extracted_text)}, preview: '{extracted_text[:100]}...'")
+        else:
+            logger.info("AI Summary data was None or empty")
+
         # Convert to Pydantic models
         search_results = []
         for i, result in enumerate(results[:count]):
@@ -292,7 +340,9 @@ class BraveSearchTools:
 
         logger.info(f"Found {len(search_results)} search results")
         if ai_summary:
-            logger.info("Extracted AI summary")
+            logger.info(f"Extracted AI summary: {ai_summary.text[:100]}...")
+        else:
+            logger.info("No AI summary extracted (ai_summary_data was None or empty)")
 
         return SearchResponse(query=query, results=search_results, ai_summary=ai_summary)
 
