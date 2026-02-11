@@ -43,6 +43,8 @@ class SearchResponse(BaseModel):
     ai_summary: Optional[AISummary] = None
     results: List[SearchResult]
     query: str
+    page: int = 1
+    has_next_page: bool = False
 
 
 class ExtractedContent(BaseModel):
@@ -63,21 +65,26 @@ class BraveSearchTools:
     def __init__(self, page: Page):
         self.page = page
 
-    async def search(self, query: str, count: int = 10) -> SearchResponse:
+    async def search(self, query: str, count: int = 10, page: int = 1) -> SearchResponse:
         """Search Brave Search and return structured results.
 
         Args:
             query: Search query string
             count: Number of results to return (default: 10)
+            page: Page number for pagination (default: 1)
 
         Returns:
             SearchResponse object containing results and optional AI summary
         """
-        logger.info(f"Searching Brave for: {query} (count={count})")
+        logger.info(f"Searching Brave for: {query} (count={count}, page={page})")
 
         # Navigate to Brave search with query
         encoded_query = quote(query)
         search_url = f"{self.BRAVE_SEARCH_URL}?q={encoded_query}"
+
+        # Add page parameter for pagination (Brave uses 0-based indexing internally)
+        if page > 1:
+            search_url += f"&page={page}"
 
         # Use domcontentloaded for faster navigation, then wait for results
         await self.page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
@@ -100,21 +107,21 @@ class BraveSearchTools:
                 # Brave's AI answer uses multiple possible selectors
                 # Updated 2026-02: Brave uses .answer class and data attributes
                 ai_selectors = [
-                    '.answer',  # Main AI answer container
+                    ".answer",  # Main AI answer container
                     '[data-component="Summarizer"]',
-                    '.summarizer',
-                    '#answer-box',
+                    ".summarizer",
+                    "#answer-box",
                     '[class*="answer"]',
                     '[class*="ai-response"]',
-                    '.snippet'
+                    ".snippet",
                 ]
-                selector_list = ', '.join(ai_selectors)
+                selector_list = ", ".join(ai_selectors)
                 await self.page.wait_for_selector(
                     selector_list,
                     timeout=15000,
                 )
                 logger.info("AI Summary element detected on page")
-                
+
                 # Wait for the AI text to actually populate (not just the container)
                 # The element appears before text is generated
                 for i in range(10):
@@ -133,11 +140,11 @@ class BraveSearchTools:
                         }
                     """)
                     if has_text:
-                        logger.info(f"AI Summary text populated after {(i+1)*500}ms")
+                        logger.info(f"AI Summary text populated after {(i + 1) * 500}ms")
                         break
                 else:
                     logger.info("AI Summary element found but text not populated after 5s")
-                    
+
             except Exception as e:
                 logger.info(f"AI Summary not found or timed out: {e}")
         except Exception as e:
@@ -173,10 +180,10 @@ class BraveSearchTools:
                 return debug;
             }
         """)
-        
+
         if ai_debug:
             logger.info(f"AI Debug info: {ai_debug}")
-        
+
         # Extract search results and AI summary using JavaScript
         data = await self.page.evaluate(
             f"""
@@ -338,7 +345,9 @@ class BraveSearchTools:
         # Debug logging for AI summary extraction
         if ai_summary_data:
             extracted_text = ai_summary_data.get("text", "")
-            logger.info(f"AI Summary extracted - length: {len(extracted_text)}, preview: '{extracted_text[:100]}...'")
+            logger.info(
+                f"AI Summary extracted - length: {len(extracted_text)}, preview: '{extracted_text[:100]}...'"
+            )
         else:
             logger.info("AI Summary data was None or empty")
 
@@ -366,7 +375,14 @@ class BraveSearchTools:
         else:
             logger.info("No AI summary extracted (ai_summary_data was None or empty)")
 
-        return SearchResponse(query=query, results=search_results, ai_summary=ai_summary)
+        has_next_page = len(results) >= count
+        return SearchResponse(
+            query=query,
+            results=search_results,
+            ai_summary=ai_summary,
+            page=page,
+            has_next_page=has_next_page,
+        )
 
     async def extract(self, url: str, max_length: int = 5000) -> ExtractedContent:
         """Extract clean content from a URL.
@@ -852,7 +868,12 @@ class BraveSearchTools:
 
 # Convenience functions for direct usage
 async def brave_search(
-    page: Page, query: str, count: int = 10, session_id: Optional[str] = None, manager=None
+    page: Page,
+    query: str,
+    count: int = 10,
+    page_num: int = 1,
+    session_id: Optional[str] = None,
+    manager=None,
 ) -> SearchResponse:
     """Convenience function to search Brave.
 
@@ -860,6 +881,7 @@ async def brave_search(
         page: Playwright page object (used if no session_id provided)
         query: Search query
         count: Number of results
+        page_num: Page number for pagination (default: 1)
         session_id: Optional sub-agent session ID to use isolated browser
         manager: Optional SubAgentBrowserManager instance (required if session_id provided)
 
@@ -872,7 +894,7 @@ async def brave_search(
         page = browser_instance.page
     # If no session_id, use the provided page (existing behavior)
     tools = BraveSearchTools(page)
-    return await tools.search(query, count)
+    return await tools.search(query, count, page=page_num)
 
 
 async def brave_extract(

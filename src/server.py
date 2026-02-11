@@ -179,6 +179,11 @@ class BraveScraperServer:
                                 "default": 10,
                                 "description": "Number of results to return (default: 10)",
                             },
+                            "page": {
+                                "type": "integer",
+                                "default": 1,
+                                "description": "Page number for pagination (default: 1)",
+                            },
                             "session_id": {
                                 "type": "string",
                                 "description": "Optional: Sub-agent session ID for browser isolation",
@@ -237,18 +242,18 @@ class BraveScraperServer:
 
     async def _execute_tool_isolated(self, name: str, arguments: dict) -> str:
         """Execute tool in an isolated browser context (for search/extract).
-        
+
         Supports session_id for sub-agent browser isolation:
         - If session_id is provided, uses SubAgentBrowserManager
         - Otherwise uses shared browser with isolated context
         """
         session_id = arguments.get("session_id")
-        
+
         if session_id and self.browser_manager.subagent_manager:
             # Use sub-agent browser isolation
             logger.info(f"Using sub-agent browser for session: {session_id}")
             browser_instance = await self.browser_manager.get_subagent_browser(session_id)
-            
+
             # Get or create a page in the sub-agent's browser
             tabs = await browser_instance.list_tabs()
             if tabs:
@@ -257,12 +262,14 @@ class BraveScraperServer:
             else:
                 # Create new tab
                 _, page = await browser_instance.create_tab()
-            
+
             try:
                 if name == "brave_search":
                     brave_tools = BraveSearchTools(page)
                     response = await brave_tools.search(
-                        query=arguments["query"], count=arguments.get("count", 10)
+                        query=arguments["query"],
+                        count=arguments.get("count", 10),
+                        page=arguments.get("page", 1),
                     )
                     return self._format_search_response(response)
                 elif name == "brave_extract":
@@ -280,7 +287,9 @@ class BraveScraperServer:
                 if name == "brave_search":
                     brave_tools = BraveSearchTools(page)
                     response = await brave_tools.search(
-                        query=arguments["query"], count=arguments.get("count", 10)
+                        query=arguments["query"],
+                        count=arguments.get("count", 10),
+                        page=arguments.get("page", 1),
                     )
                     return self._format_search_response(response)
                 elif name == "brave_extract":

@@ -10,6 +10,7 @@ import pytest
 from src.tools.brave_search import (
     BraveSearchTools,
     SearchResult,
+    SearchResponse,
     ExtractedContent,
     brave_search,
     brave_extract,
@@ -388,12 +389,189 @@ class TestSummaryGeneration:
         assert "Second sentence?" in summary
 
 
+class TestSearchResponse:
+    """Test suite for SearchResponse model."""
+
+    def test_search_response_creation(self):
+        """Test SearchResponse can be created with all fields."""
+        result = SearchResult(
+            title="Test Title",
+            url="https://example.com",
+            snippet="Test snippet content",
+            position=1,
+        )
+        response = SearchResponse(
+            query="test query",
+            results=[result],
+            page=1,
+            has_next_page=False,
+        )
+
+        assert response.query == "test query"
+        assert len(response.results) == 1
+        assert response.page == 1
+        assert response.has_next_page is False
+
+    def test_search_response_defaults(self):
+        """Test SearchResponse with default values."""
+        result = SearchResult(title="Test", url="https://example.com", snippet="", position=0)
+        response = SearchResponse(query="test", results=[result])
+
+        assert response.page == 1
+        assert response.has_next_page is False
+
+    def test_search_response_with_pagination_metadata(self):
+        """Test SearchResponse with pagination metadata."""
+        results = [
+            SearchResult(
+                title=f"Result {i}", url=f"https://example{i}.com", snippet="Snippet", position=i
+            )
+            for i in range(1, 6)
+        ]
+        response = SearchResponse(
+            query="pagination test",
+            results=results,
+            page=2,
+            has_next_page=True,
+        )
+
+        assert response.page == 2
+        assert response.has_next_page is True
+        assert len(response.results) == 5
+
+
+class TestPagination:
+    """Test suite for pagination functionality."""
+
+    @pytest.fixture
+    def mock_page(self):
+        """Create a mock Playwright page."""
+        page = AsyncMock()
+        page.goto = AsyncMock()
+        page.wait_for_selector = AsyncMock()
+        page.wait_for_timeout = AsyncMock()
+        page.evaluate = AsyncMock()
+        return page
+
+    @pytest.fixture
+    def search_tools(self, mock_page):
+        """Create a BraveSearchTools instance."""
+        return BraveSearchTools(mock_page)
+
+    @pytest.mark.asyncio
+    async def test_search_with_page_parameter(self, search_tools, mock_page):
+        """Test search with page parameter."""
+        mock_results = [
+            {
+                "title": "Result 1",
+                "url": "https://example1.com",
+                "snippet": "Snippet",
+                "position": 1,
+            }
+        ]
+        mock_page.evaluate = AsyncMock(return_value={"results": mock_results, "aiSummary": None})
+
+        response = await search_tools.search("test query", count=10, page=2)
+
+        assert response.page == 2
+        mock_page.goto.assert_called_once()
+        call_args = mock_page.goto.call_args
+        url = call_args[0][0]
+        assert "page=2" in url
+
+    @pytest.mark.asyncio
+    async def test_search_url_includes_page_only_when_greater_than_1(self, search_tools, mock_page):
+        """Test that page parameter is only added when page > 1."""
+        mock_page.evaluate = AsyncMock(return_value={"results": [], "aiSummary": None})
+
+        await search_tools.search("test query", count=10, page=1)
+        url = mock_page.goto.call_args[0][0]
+        assert "page=" not in url
+
+    @pytest.mark.asyncio
+    async def test_search_response_has_next_page_true_when_full_results(
+        self, search_tools, mock_page
+    ):
+        """Test has_next_page is True when results equal count."""
+        mock_results = [
+            {
+                "title": f"Result {i}",
+                "url": f"https://example{i}.com",
+                "snippet": "Snippet",
+                "position": i,
+            }
+            for i in range(1, 11)
+        ]
+        mock_page.evaluate = AsyncMock(return_value={"results": mock_results, "aiSummary": None})
+
+        response = await search_tools.search("test query", count=10, page=1)
+
+        assert response.has_next_page is True
+
+    @pytest.mark.asyncio
+    async def test_search_response_has_next_page_false_when_partial_results(
+        self, search_tools, mock_page
+    ):
+        """Test has_next_page is False when results less than count."""
+        mock_results = [
+            {
+                "title": "Result 1",
+                "url": "https://example1.com",
+                "snippet": "Snippet",
+                "position": 1,
+            }
+        ]
+        mock_page.evaluate = AsyncMock(return_value={"results": mock_results, "aiSummary": None})
+
+        response = await search_tools.search("test query", count=10, page=1)
+
+        assert response.has_next_page is False
+
+    @pytest.mark.asyncio
+    async def test_search_response_has_next_page_false_on_last_page(self, search_tools, mock_page):
+        """Test has_next_page is False when fewer results than count."""
+        mock_results = [
+            {
+                "title": f"Result {i}",
+                "url": f"https://example{i}.com",
+                "snippet": "Snippet",
+                "position": i,
+            }
+            for i in range(1, 6)
+        ]
+        mock_page.evaluate = AsyncMock(return_value={"results": mock_results, "aiSummary": None})
+
+        response = await search_tools.search("test query", count=10, page=2)
+
+        assert response.has_next_page is False
+
+    @pytest.mark.asyncio
+    async def test_search_backward_compatibility_page_default(self, search_tools, mock_page):
+        """Test backward compatibility - page defaults to 1."""
+        mock_page.evaluate = AsyncMock(return_value={"results": [], "aiSummary": None})
+
+        response = await search_tools.search("test query", count=10)
+
+        assert response.page == 1
+        assert response.has_next_page is False
+
+    @pytest.mark.asyncio
+    async def test_search_backward_compatibility_without_page_param(self, search_tools, mock_page):
+        """Test backward compatibility - page parameter not required."""
+        mock_page.evaluate = AsyncMock(return_value={"results": [], "aiSummary": None})
+
+        response = await search_tools.search("test query")
+
+        assert response.page == 1
+        assert "page=" not in mock_page.goto.call_args[0][0]
+
+
 class TestBraveSearchConvenienceFunction:
     """Test suite for brave_search convenience function."""
 
     @pytest.mark.asyncio
-    async def test_brave_search_convenience(self):
-        """Test the brave_search convenience function."""
+    async def test_brave_search_convenience_with_page(self):
+        """Test the brave_search convenience function with page parameter."""
         mock_page = AsyncMock()
         mock_results = [
             {"title": "Result 1", "url": "https://example.com", "snippet": "Snippet", "position": 1}
@@ -402,20 +580,25 @@ class TestBraveSearchConvenienceFunction:
         mock_page.goto = AsyncMock()
         mock_page.wait_for_selector = AsyncMock()
 
-        from src.tools.brave_search import SearchResponse
         with patch.object(
             BraveSearchTools,
             "search",
             return_value=SearchResponse(
                 query="query",
-                results=[SearchResult(title="Result 1", url="https://example.com", snippet="Snippet", position=1)],
-                ai_summary=None
+                results=[
+                    SearchResult(
+                        title="Result 1", url="https://example.com", snippet="Snippet", position=1
+                    )
+                ],
+                ai_summary=None,
+                page=2,
+                has_next_page=True,
             ),
         ):
-            response = await brave_search(mock_page, "query", count=5)
+            response = await brave_search(mock_page, "query", count=5, page_num=2)
 
-        assert len(response.results) == 1
-        assert response.results[0].title == "Result 1"
+        assert response.page == 2
+        assert response.has_next_page is True
 
 
 class TestBraveExtractConvenienceFunction:
@@ -805,3 +988,44 @@ class TestDataModels:
         data = result.model_dump()
         assert data["title"] == "Test"
         assert data["url"] == "https://example.com"
+
+    def test_search_response_json_serialization_with_pagination(self):
+        """Test SearchResponse with pagination serializes correctly."""
+        response = SearchResponse(
+            query="test",
+            results=[
+                SearchResult(
+                    title="Result 1", url="https://example1.com", snippet="Snippet", position=1
+                ),
+                SearchResult(
+                    title="Result 2", url="https://example2.com", snippet="Snippet", position=2
+                ),
+            ],
+            page=2,
+            has_next_page=True,
+        )
+
+        json_str = response.model_dump_json()
+        data = json.loads(json_str)
+
+        assert data["query"] == "test"
+        assert data["page"] == 2
+        assert data["has_next_page"] is True
+        assert len(data["results"]) == 2
+
+    def test_search_response_json_serialization_defaults(self):
+        """Test SearchResponse default values serialize correctly."""
+        response = SearchResponse(
+            query="test",
+            results=[
+                SearchResult(
+                    title="Result", url="https://example.com", snippet="Snippet", position=1
+                )
+            ],
+        )
+
+        json_str = response.model_dump_json()
+        data = json.loads(json_str)
+
+        assert data["page"] == 1
+        assert data["has_next_page"] is False
