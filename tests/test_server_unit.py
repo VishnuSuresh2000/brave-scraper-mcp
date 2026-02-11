@@ -78,12 +78,18 @@ async def test_execute_tool_brave_search(server):
     """Test brave_search routing."""
     with patch('src.server.BraveSearchTools') as MockTools:
         mock_instance = MockTools.return_value
-        mock_instance.search = AsyncMock(return_value=[
-            MagicMock(title="T1", url="U1", snippet="S1", position=1)
-        ])
+        mock_instance.search = AsyncMock(return_value=MagicMock(
+            query="test", 
+            results=[MagicMock(title="T1", url="U1", snippet="S1", position=1)],
+            ai_summary=None
+        ))
         
-        result = await server._execute_tool("brave_search", {"query": "test", "count": 1})
-        mock_instance.search.assert_called_once_with(query="test", count=1)
+        # Mock isolated_context to return a mock page
+        mock_page = AsyncMock()
+        server.browser_manager.isolated_context.return_value.__aenter__.return_value = mock_page
+        
+        result = await server._execute_tool_isolated("brave_search", {"query": "test", "count": 1})
+        mock_instance.search.assert_called_once_with(query="test", count=1, page=1)
         assert "1. T1" in result
         assert "URL: U1" in result
 
@@ -96,7 +102,11 @@ async def test_execute_tool_brave_extract(server):
             title="Title", url="Url", content="Content", word_count=10, summary="Summary"
         ))
         
-        result = await server._execute_tool("brave_extract", {"url": "https://test.com"})
+        # Mock isolated_context to return a mock page
+        mock_page = AsyncMock()
+        server.browser_manager.isolated_context.return_value.__aenter__.return_value = mock_page
+        
+        result = await server._execute_tool_isolated("brave_extract", {"url": "https://test.com"})
         mock_instance.extract.assert_called_once_with(url="https://test.com", max_length=5000)
         assert "Title: Title" in result
         assert "Summary:\nSummary" in result
@@ -125,7 +135,7 @@ async def test_call_tool_handler(server):
     # Test uninitialized browser
     server.browser_manager.page = None
     resp = await server.call_tool_handler("browser_navigate", {"url": "..."})
-    assert "Error: Browser not initialized" in resp[0].text
+    assert "Error: Browser page not available" in resp[0].text
     
     # Test success
     server.browser_manager.page = AsyncMock()
