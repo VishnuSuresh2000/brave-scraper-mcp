@@ -74,7 +74,8 @@ async def test_brave_scrape_page_logic():
     tools = BraveSearchTools(mock_page)
     
     # Patch markdownify.markdownify which was imported as md
-    with patch('src.tools.brave_search.md') as mock_md:
+    with patch('src.tools.brave_search.md') as mock_md, \
+         patch('src.tools.brave_search.MARKDOWNIFY_AVAILABLE', True):
         mock_md.return_value = "# Test"
         res = await tools.scrape_page("https://example.com", include_images=False)
         
