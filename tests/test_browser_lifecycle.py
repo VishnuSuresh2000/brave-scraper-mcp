@@ -1,10 +1,14 @@
 import asyncio
+import os
 import pytest
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.browser.instance import BrowserInstance, TabInfo
 from src.browser.subagent_manager import SubAgentBrowserManager
+
+# Skip browser lifecycle tests in CI - they need real browser
+CI_SKIP = os.environ.get("CI", "").lower() == "true"
 
 @pytest.mark.asyncio
 class TestBrowserInstance:
@@ -87,6 +91,7 @@ class TestBrowserInstance:
         assert "tab3" in tabs
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(CI_SKIP, reason="Browser lifecycle tests require real browser - skipped in CI")
 class TestSubAgentBrowserManager:
     """Tests for SubAgentBrowserManager class."""
 
