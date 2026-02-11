@@ -11,6 +11,7 @@ try:
     from markdownify import markdownify as md
     MARKDOWNIFY_AVAILABLE = True
 except ImportError:
+    md = None
     MARKDOWNIFY_AVAILABLE = False
 
 trafilatura = None
