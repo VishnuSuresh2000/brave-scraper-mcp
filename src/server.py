@@ -358,16 +358,25 @@ class BraveScraperServer:
 
         # Interaction tools
         elif name == "browser_click":
-            await page.click(arguments["selector"])
-            return f"Clicked element: {arguments['selector']}"
+            selector = arguments["selector"]
+            if not selector or not selector.strip():
+                raise ValueError("Selector cannot be empty")
+            await page.click(selector)
+            return f"Clicked element: {selector}"
 
         elif name == "browser_fill":
-            await page.fill(arguments["selector"], arguments["value"])
-            return f"Filled {arguments['selector']} with value"
+            selector = arguments["selector"]
+            if not selector or not selector.strip():
+                raise ValueError("Selector cannot be empty")
+            await page.fill(selector, arguments["value"])
+            return f"Filled {selector} with value"
 
         elif name == "browser_hover":
-            await page.hover(arguments["selector"])
-            return f"Hovered over {arguments['selector']}"
+            selector = arguments["selector"]
+            if not selector or not selector.strip():
+                raise ValueError("Selector cannot be empty")
+            await page.hover(selector)
+            return f"Hovered over {selector}"
 
         # Extraction tools
         elif name == "browser_screenshot":

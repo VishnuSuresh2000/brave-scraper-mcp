@@ -61,6 +61,8 @@ class BraveSearchTools:
     """Tools for Brave Search and content extraction."""
 
     BRAVE_SEARCH_URL = "https://search.brave.com/search"
+    MAX_PAGE = 100
+    MAX_COUNT = 100
 
     def __init__(self, page: Page):
         self.page = page
@@ -76,6 +78,15 @@ class BraveSearchTools:
         Returns:
             SearchResponse object containing results and optional AI summary
         """
+        if not query or not query.strip():
+            raise ValueError("Query cannot be empty")
+
+        if page < 1 or page > self.MAX_PAGE:
+            raise ValueError(f"Page must be between 1 and {self.MAX_PAGE}")
+
+        if count < 1 or count > self.MAX_COUNT:
+            raise ValueError(f"Count must be between 1 and {self.MAX_COUNT}")
+
         logger.info(f"Searching Brave for: {query} (count={count}, page={page})")
 
         # Navigate to Brave search with query

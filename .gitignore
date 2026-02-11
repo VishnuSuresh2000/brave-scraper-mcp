@@ -45,6 +45,7 @@ Thumbs.db
 
 # Docker
 .docker/
+docker-compose.override.yml
 
 # MCP config (may contain tokens)
 mcporter.json
