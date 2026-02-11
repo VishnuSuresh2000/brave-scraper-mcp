@@ -56,7 +56,11 @@ class BraveScraperServer:
                     inputSchema={
                         "type": "object",
                         "properties": {
-                            "url": {"type": "string", "description": "URL to navigate to"},
+                            "url": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "URL to navigate to",
+                            },
                             "wait_until": {
                                 "type": "string",
                                 "enum": ["load", "domcontentloaded", "networkidle"],
@@ -65,12 +69,17 @@ class BraveScraperServer:
                             },
                         },
                         "required": ["url"],
+                        "additionalProperties": False,
                     },
                 ),
                 Tool(
                     name="browser_back",
                     description="Navigate back in browser history",
-                    inputSchema={"type": "object", "properties": {}},
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": False,
+                    },
                 ),
                 # Interaction Tools
                 Tool(
@@ -81,10 +90,12 @@ class BraveScraperServer:
                         "properties": {
                             "selector": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "CSS selector for element",
                             }
                         },
                         "required": ["selector"],
+                        "additionalProperties": False,
                     },
                 ),
                 Tool(
@@ -93,10 +104,19 @@ class BraveScraperServer:
                     inputSchema={
                         "type": "object",
                         "properties": {
-                            "selector": {"type": "string", "description": "CSS selector for input"},
-                            "value": {"type": "string", "description": "Value to fill"},
+                            "selector": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "CSS selector for input",
+                            },
+                            "value": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Value to fill",
+                            },
                         },
                         "required": ["selector", "value"],
+                        "additionalProperties": False,
                     },
                 ),
                 Tool(
@@ -107,10 +127,12 @@ class BraveScraperServer:
                         "properties": {
                             "selector": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "CSS selector for element",
                             }
                         },
                         "required": ["selector"],
+                        "additionalProperties": False,
                     },
                 ),
                 # Extraction Tools
@@ -120,7 +142,11 @@ class BraveScraperServer:
                     inputSchema={
                         "type": "object",
                         "properties": {
-                            "name": {"type": "string", "description": "Screenshot filename"},
+                            "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Screenshot filename",
+                            },
                             "selector": {
                                 "type": "string",
                                 "description": "Optional: CSS selector for element",
@@ -132,6 +158,7 @@ class BraveScraperServer:
                             },
                         },
                         "required": ["name"],
+                        "additionalProperties": False,
                     },
                 ),
                 Tool(
@@ -142,10 +169,12 @@ class BraveScraperServer:
                         "properties": {
                             "script": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "JavaScript code to execute",
                             }
                         },
                         "required": ["script"],
+                        "additionalProperties": False,
                     },
                 ),
                 # CAPTCHA Solver Tool
@@ -161,6 +190,7 @@ class BraveScraperServer:
                                 "description": "Maximum time to wait for CAPTCHA solving (seconds)",
                             }
                         },
+                        "additionalProperties": False,
                     },
                 ),
                 # Brave Search Tools
@@ -172,17 +202,22 @@ class BraveScraperServer:
                         "properties": {
                             "query": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "Search query string",
                             },
                             "count": {
                                 "type": "integer",
                                 "default": 10,
-                                "description": "Number of results to return (default: 10)",
+                                "minimum": 1,
+                                "maximum": 20,
+                                "description": "Number of results to return (1-20, default: 10)",
                             },
                             "page": {
                                 "type": "integer",
                                 "default": 1,
-                                "description": "Page number for pagination (default: 1)",
+                                "minimum": 1,
+                                "maximum": 10,
+                                "description": "Page number for pagination (1-10, default: 1)",
                             },
                             "session_id": {
                                 "type": "string",
@@ -190,6 +225,7 @@ class BraveScraperServer:
                             },
                         },
                         "required": ["query"],
+                        "additionalProperties": False,
                     },
                 ),
                 Tool(
@@ -200,6 +236,7 @@ class BraveScraperServer:
                         "properties": {
                             "url": {
                                 "type": "string",
+                                "minLength": 1,
                                 "description": "URL to extract content from",
                             },
                             "max_length": {
@@ -213,6 +250,32 @@ class BraveScraperServer:
                             },
                         },
                         "required": ["url"],
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="brave_scrape_page",
+                    description="Deep page scraper that fetches and extracts the full content of a URL in Markdown format",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "url": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "URL to scrape",
+                            },
+                            "include_images": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Include image URLs in markdown",
+                            },
+                            "session_id": {
+                                "type": "string",
+                                "description": "Optional: Sub-agent session ID for browser isolation",
+                            },
+                        },
+                        "required": ["url"],
+                        "additionalProperties": False,
                     },
                 ),
             ]
@@ -230,8 +293,8 @@ class BraveScraperServer:
             return [TextContent(type="text", text="Error: Browser not initialized")]
 
         try:
-            # Use isolated context for search/extract to prevent race conditions
-            if name in ("brave_search", "brave_extract"):
+            # Use isolated context for search/extract/scrape to prevent race conditions
+            if name in ("brave_search", "brave_extract", "brave_scrape_page"):
                 result = await self._execute_tool_isolated(name, arguments)
             else:
                 result = await self._execute_tool(name, arguments)
@@ -278,6 +341,12 @@ class BraveScraperServer:
                         url=arguments["url"], max_length=arguments.get("max_length", 5000)
                     )
                     return self._format_extract_response(content)
+                elif name == "brave_scrape_page":
+                    brave_tools = BraveSearchTools(page)
+                    markdown = await brave_tools.scrape_page(
+                        url=arguments["url"], include_images=arguments.get("include_images", False)
+                    )
+                    return markdown
             finally:
                 # Update activity timestamp
                 browser_instance.update_activity()
@@ -298,6 +367,12 @@ class BraveScraperServer:
                         url=arguments["url"], max_length=arguments.get("max_length", 5000)
                     )
                     return self._format_extract_response(content)
+                elif name == "brave_scrape_page":
+                    brave_tools = BraveSearchTools(page)
+                    markdown = await brave_tools.scrape_page(
+                        url=arguments["url"], include_images=arguments.get("include_images", False)
+                    )
+                    return markdown
 
         return "Unknown tool"
 
@@ -404,6 +479,13 @@ class BraveScraperServer:
             else:
                 error_msg = result.get("error", "Unknown error")
                 return f"Failed to solve CAPTCHA: {error_msg}"
+
+        elif name == "brave_scrape_page":
+            brave_tools = BraveSearchTools(page)
+            markdown = await brave_tools.scrape_page(
+                url=arguments["url"], include_images=arguments.get("include_images", False)
+            )
+            return markdown
 
         else:
             return f"Unknown tool: {name}"

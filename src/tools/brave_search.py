@@ -7,6 +7,12 @@ from urllib.parse import quote
 from pydantic import BaseModel
 from patchright.async_api import Page
 
+try:
+    from markdownify import markdownify as md
+    MARKDOWNIFY_AVAILABLE = True
+except ImportError:
+    MARKDOWNIFY_AVAILABLE = False
+
 trafilatura = None
 TRAFILATURA_AVAILABLE = False
 
@@ -458,6 +464,47 @@ class BraveSearchTools:
 
         # Fallback to JavaScript extraction
         return await self._extract_with_js(url, max_length)
+
+    async def scrape_page(self, url: str, include_images: bool = False) -> str:
+        """Deep page scraper that returns full content in Markdown.
+
+        Args:
+            url: URL to scrape
+            include_images: Whether to include images in markdown
+
+        Returns:
+            Markdown formatted string of the page content
+        """
+        logger.info(f"Deep scraping (Markdown) from: {url}")
+
+        # Navigate to the URL
+        await self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
+        
+        # Give JS a bit more time to settle for SPA-like sites
+        await self.page.wait_for_timeout(3000)
+
+        # Get the HTML content
+        html_content = await self.page.content()
+
+        if MARKDOWNIFY_AVAILABLE:
+            # Configure markdownify
+            kwargs = {
+                "heading_style": "ATX",
+                "bullets": "-",
+            }
+            if not include_images:
+                kwargs["strip"] = ["img"]
+
+            markdown = md(html_content, **kwargs)
+            
+            # Basic cleanup: remove excess newlines
+            import re
+            markdown = re.sub(r'\n{3,}', '\n\n', markdown)
+            return markdown.strip()
+        else:
+            # Fallback to basic text if markdownify is not available
+            content = await self.page.evaluate("() => document.body.innerText")
+            return f"# Content from {url}\n\n{content}"
 
     async def _extract_with_js(self, url: str, max_length: int) -> ExtractedContent:
         """Extract content using JavaScript as fallback with aggressive cleaning."""
@@ -930,3 +977,29 @@ async def brave_extract(
     # If no session_id, use the provided page (existing behavior)
     tools = BraveSearchTools(page)
     return await tools.extract(url, max_length)
+
+
+async def brave_scrape_page(
+    page: Page,
+    url: str,
+    include_images: bool = False,
+    session_id: Optional[str] = None,
+    manager=None,
+) -> str:
+    """Convenience function for deep scraping.
+
+    Args:
+        page: Playwright page object
+        url: URL to scrape
+        include_images: Whether to include images
+        session_id: Optional session ID
+        manager: Optional manager
+
+    Returns:
+        Markdown string
+    """
+    if session_id and manager:
+        browser_instance = await manager.get_or_create_browser(session_id)
+        page = browser_instance.page
+    tools = BraveSearchTools(page)
+    return await tools.scrape_page(url, include_images)
