@@ -18,9 +18,7 @@ Access Brave Search via MCP protocol for web search and content extraction.
 ### Search the Web
 
 ```bash
-mcporter call http://brave-scraper-mcp:8080/mcp brave_search \
-  --arg query="your search query" \
-  --arg count=10
+mcporter call http://brave-scraper-mcp:8080/mcp brave_search query="your search query" count=10
 ```
 
 Parameters:
@@ -32,9 +30,7 @@ Returns: JSON array of search results with title, url, snippet, site.
 ### Extract Content from URL
 
 ```bash
-mcporter call http://brave-scraper-mcp:8080/mcp brave_extract \
-  --arg url="https://example.com/article" \
-  --arg max_length=5000
+mcporter call http://brave-scraper-mcp:8080/mcp brave_extract url="https://example.com/article" max_length=5000
 ```
 
 Parameters:
@@ -104,6 +100,7 @@ curl -s -X POST http://brave-scraper-mcp:8080/mcp/ \
 |------|-------------|-----------------|-----------------|
 | `brave_search` | Search Brave Search | `query` | `count` (default: 10) |
 | `brave_extract` | Extract clean content | `url` | `max_length` (default: 5000) |
+| `brave_scrape_page` | Scrape full page as Markdown | `url` | `include_images` (default: false) |
 | `browser_navigate` | Navigate browser | `url` | `wait_until` |
 | `browser_screenshot` | Take screenshot | `name` | `selector`, `full_page` |
 | `browser_click` | Click element | `selector` | - |
@@ -114,13 +111,10 @@ curl -s -X POST http://brave-scraper-mcp:8080/mcp/ \
 
 ```bash
 # 1. Search for information
-mcporter call http://brave-scraper-mcp:8080/mcp brave_search \
-  --arg query="best practices for REST API design" \
-  --arg count=5
+mcporter call http://brave-scraper-mcp:8080/mcp brave_search query="best practices for REST API design" count=5
 
 # 2. Extract content from top result
-mcporter call http://brave-scraper-mcp:8080/mcp brave_extract \
-  --arg url="https://example.com/api-guide"
+mcporter call http://brave-scraper-mcp:8080/mcp brave_extract url="https://example.com/api-guide"
 
 # 3. Get structured content for analysis
 ```
