@@ -1,6 +1,6 @@
 ---
 name: brave-scraper-mcp
-description: Search the web and extract content using the Brave Search MCP server. NO API KEY REQUIRED. Use when you need to search for information, research topics, or extract readable content from URLs. Tools: brave_search, brave_extract, brave_scrape_page, browser_navigate, browser_screenshot, browser_click, browser_fill, browser_hover, browser_evaluate, browser_solve_captcha. Accessible at http://brave-scraper-mcp:8080/mcp from Docker networks.
+description: "Search the web and extract content using the Brave Search MCP server. NO API KEY REQUIRED. Use when you need to search for information, research topics, or extract readable content from URLs. Tools: brave_search, brave_extract, brave_scrape_page, browser_navigate, browser_screenshot, browser_click, browser_fill, browser_hover, browser_evaluate, browser_solve_captcha. Accessible at http://brave-scraper-mcp:8080/mcp from Docker networks."
 ---
 
 # Brave Scraper MCP Server
