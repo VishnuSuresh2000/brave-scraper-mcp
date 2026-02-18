@@ -11,6 +11,7 @@ A stealth web scraping MCP (Model Context Protocol) server using **Patchright** 
 - **GitHub Repository**: https://github.com/VishnuSuresh2000/brave-scraper-mcp
 - **Issues**: https://github.com/VishnuSuresh2000/brave-scraper-mcp/issues
 - **Skill Documentation**: See `skills/brave-scraper-mcp/` for agent integration details.
+- **Connecting Other MCP Clients**: `skills/brave-scraper-mcp/references/mcp-clients.md`
 
 ## Features
 

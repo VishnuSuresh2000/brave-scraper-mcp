@@ -150,6 +150,9 @@ mcporter call brave-scraper.brave_scrape_page url="https://example.com/docs" inc
 
 ## Agent Integration
 
-This skill provides tools that can be installed into OpenClaw agents. For detailed setup instructions (ClawHub, local, mcporter), see:
+This skill provides tools that can be installed into OpenClaw agents. For detailed setup instructions (local, mcporter), see:
 
-**references/agent-setup.md** – Comprehensive guide to agent configuration, skill installation methods, verification, and troubleshooting.
+- **references/agent-setup.md** – Agent configuration, skill installation, verification
+- **references/mcp-clients.md** – Connect from Cursor, Claude Code, Cloud Code, and other MCP clients
+
+**Note**: While the skill package is for OpenClaw, the underlying MCP server works with any MCP client. See `mcp-clients.md` for cross-client setup.
