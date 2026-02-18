@@ -73,21 +73,11 @@ mcporter list brave-scraper
 
 ## Using with OpenClaw Agents
 
-This server provides MCP tools that can be installed as a **skill** in OpenClaw agents. Skills extend agent capabilities; you can install this skill via ClawHub, mcporter, or manually.
+This server provides MCP tools that can be installed as a **skill** in OpenClaw agents. Skills extend agent capabilities; you can install this skill via local copy or mcporter.
 
 ### Installation Methods
 
-#### A. Install from ClawHub (Recommended)
-
-If this skill is published to ClawHub:
-
-```bash
-# Search and install
-clawhub search brave-scraper
-clawhub install brave-scraper-mcp
-```
-
-#### B. Local Installation (Manual)
+#### Local Installation (Manual)
 
 Copy the skill folder to your agent's workspace or global skills directory:
 
@@ -99,7 +89,7 @@ cp -r skills/brave-scraper-mcp ~/.openclaw/workspace/your-agent/skills/
 cp -r skills/brave-scraper-mcp ~/.openclaw/skills/
 ```
 
-#### C. MPC Server Import (mcporter)
+#### MCP Server Import (mcporter)
 
 Add the running server as an MCP source:
 
@@ -125,8 +115,8 @@ openclaw skills info brave-scraper-mcp
 ### Documentation
 
 - **OpenClaw Agent Concepts**: [docs/concepts/agent.md](https://github.com/openclaw/openclaw/blob/main/docs/concepts/agent.md)
-- **Managing Skills (ClawHub)**: [docs/tools/clawhub.md](https://github.com/openclaw/openclaw/blob/main/docs/tools/clawhub.md)
 - **MCP Integration (mcporter)**: [docs/tools/mcporter.md](https://github.com/openclaw/openclaw/blob/main/docs/tools/mcporter.md)
+- **Multi-Agent Setup**: [docs/concepts/multi-agent.md](https://github.com/openclaw/openclaw/blob/main/docs/concepts/multi-agent.md)
 - **Multi-Agent Setup**: [docs/concepts/multi-agent.md](https://github.com/openclaw/openclaw/blob/main/docs/concepts/multi-agent.md)
 
 ## Usage Examples
