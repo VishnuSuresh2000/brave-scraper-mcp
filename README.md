@@ -18,6 +18,7 @@ A stealth web scraping MCP (Model Context Protocol) server using **Patchright** 
 - 🔓 **CAPTCHA Solving**: Auto-detects and solves Cloudflare Turnstile, hCaptcha, and reCAPTCHA
 - 📄 **Full Page Scraping**: Scrape any webpage and convert to clean Markdown
 - 🔍 **Brave Search**: Search the web without API keys
+- 🤖 **AI-Ready Extraction**: Content optimized for LLMs/RAG – clean, structured, no noise
 
 ## Server URL
 
