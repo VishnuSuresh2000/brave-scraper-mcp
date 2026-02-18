@@ -53,7 +53,7 @@ http://brave-scraper-mcp:8080/mcp
 ### 1. Clone and Build
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/brave-scraper-mcp.git
+git clone https://github.com/VishnuSuresh2000/brave-scraper-mcp.git
 cd brave-scraper-mcp
 docker compose up -d --build
 ```
