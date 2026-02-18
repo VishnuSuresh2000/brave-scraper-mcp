@@ -147,3 +147,9 @@ mcporter call brave-scraper.brave_scrape_page url="https://example.com/docs" inc
 ### MCP Protocol Errors
 - Include both `Accept: application/json, text/event-stream` headers
 - Use `tools/call` method with `name` and `arguments` object
+
+## Agent Integration
+
+This skill provides tools that can be installed into OpenClaw agents. For detailed setup instructions (ClawHub, local, mcporter), see:
+
+**references/agent-setup.md** – Comprehensive guide to agent configuration, skill installation methods, verification, and troubleshooting.
