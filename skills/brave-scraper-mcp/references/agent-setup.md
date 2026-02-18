@@ -13,7 +13,7 @@ This guide explains how to configure AI agents to use the Brave Scraper MCP serv
 ### 1. Deploy the MCP Server
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/brave-scraper-mcp.git
+git clone https://github.com/VishnuSuresh2000/brave-scraper-mcp.git
 cd brave-scraper-mcp
 docker compose up -d --build
 ```
