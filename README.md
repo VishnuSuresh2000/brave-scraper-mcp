@@ -19,6 +19,7 @@ A stealth web scraping MCP (Model Context Protocol) server using **Patchright** 
 - 📄 **Full Page Scraping**: Scrape any webpage and convert to clean Markdown
 - 🔍 **Brave Search**: Search the web without API keys
 - 🤖 **AI-Ready Extraction**: Content optimized for LLMs/RAG – clean, structured, no noise
+- 📋 **AI Summary from Brave**: `brave_search` automatically extracts Brave's own AI-generated summary (when available) and cited sources
 
 ## Server URL
 
@@ -32,7 +33,7 @@ http://brave-scraper-mcp:8080/mcp
 
 | Tool | Description |
 |------|-------------|
-| `brave_search` | Search Brave Search (no API key needed) |
+| `brave_search` | Search Brave Search (no API key needed). **Returns AI summary** if Brave generates one, plus cited sources |
 | `brave_extract` | Extract clean content from URL |
 | `brave_scrape_page` | Scrape full page as Markdown |
 | `browser_navigate` | Navigate to a URL |

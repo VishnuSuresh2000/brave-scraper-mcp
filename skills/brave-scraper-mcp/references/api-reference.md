@@ -66,7 +66,7 @@ data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"..."}]
 ```json
 {
   "name": "brave_search",
-  "description": "Search Brave Search and return structured results",
+  "description": "Search Brave Search and return structured results. Includes AI-generated summary when Brave provides one (in ai_summary.text), along with cited sources",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -103,7 +103,7 @@ data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"..."}]
 ```json
 {
   "name": "brave_scrape_page",
-  "description": "Deep page scraper - full content as Markdown",
+  "description": "Deep page scraper - full content as clean Markdown optimized for AI consumption",
   "inputSchema": {
     "type": "object",
     "properties": {
