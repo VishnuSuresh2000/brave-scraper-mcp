@@ -1,8 +1,16 @@
 # Brave Scraper MCP Server
 
+[![GitHub repo](https://img.shields.io/badge/github-repo-000?logo=github)](https://github.com/VishnuSuresh2000/brave-scraper-mcp)
+
 A stealth web scraping MCP (Model Context Protocol) server using **Patchright** for undetected browsing, **Xvfb** for anti-headless detection, and **PyAutoGUI** for CAPTCHA bypass. Provides Brave Search integration with smart content extraction.
 
 > **⚠️ NO API KEY REQUIRED** - This server uses a headless browser (Patchright) to scrape Brave Search directly. No API keys, no rate limits, no registration needed.
+
+## Links
+
+- **GitHub Repository**: https://github.com/VishnuSuresh2000/brave-scraper-mcp
+- **Issues**: https://github.com/VishnuSuresh2000/brave-scraper-mcp/issues
+- **Skill Documentation**: See `skills/brave-scraper-mcp/` for agent integration details.
 
 ## Features
 
