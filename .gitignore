@@ -30,6 +30,7 @@ htmlcov/
 .ruff_cache/
 uv.lock
 build.log
+*.log
 
 # Browser data (persistent, don't commit)
 browser_data/
