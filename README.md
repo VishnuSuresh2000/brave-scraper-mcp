@@ -197,7 +197,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Create virtual environment and install dependencies
 uv venv
 source .venv/bin/activate
-uv pip install -r requirements.txt
+uv sync
 
 # Install Patchright Chrome
 patchright install chrome
@@ -242,7 +242,7 @@ brave-scraper-mcp/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── entrypoint.sh
-└── requirements.txt
+└── pyproject.toml
 ```
 
 ## Anti-Detection Features
