@@ -1,11 +1,11 @@
 ---
 name: brave-scraper-mcp
-description: Search the web and extract content using the Brave Search MCP server. Use when you need to search for information, research topics, or extract readable content from URLs. Tools available: brave_search (web search), brave_extract (content extraction). The MCP server is accessible at http://brave-scraper-mcp:8080/mcp from Docker networks (including sandbox containers with traefik network access).
+description: Search the web and extract content using the Brave Search MCP server. NO API KEY REQUIRED. Use when you need to search for information, research topics, or extract readable content from URLs. Tools: brave_search, brave_extract, brave_scrape_page, browser_navigate, browser_screenshot, browser_click, browser_fill, browser_hover, browser_evaluate, browser_solve_captcha. Accessible at http://brave-scraper-mcp:8080/mcp from Docker networks.
 ---
 
-# Brave Search MCP Server
+# Brave Scraper MCP Server
 
-Access Brave Search via MCP protocol for web search and content extraction.
+Stealth web scraping via MCP protocol. NO API KEY REQUIRED - uses browser automation.
 
 ## MCP Server Location
 
@@ -15,33 +15,71 @@ Access Brave Search via MCP protocol for web search and content extraction.
 
 ## Using with mcporter CLI
 
+### Configure mcporter
+
+```bash
+mcporter config add brave-scraper --url http://brave-scraper-mcp:8080/mcp
+```
+
 ### Search the Web
 
 ```bash
-mcporter call http://brave-scraper-mcp:8080/mcp brave_search query="your search query" count=10
+mcporter call brave-scraper.brave_search query="your search query"
 ```
 
-Parameters:
-- `query` (required): Search query string
-- `count` (optional): Number of results, default 10
+```bash
+mcporter call brave-scraper.brave_search query="python async" count:5 page:1
+```
 
-Returns: JSON array of search results with title, url, snippet, site.
+**Parameters:**
+| Param | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `query` | string | Yes | - | Search query |
+| `count` | integer | No | 10 | Results (1-20) |
+| `page` | integer | No | 1 | Page number (1-10) |
+| `session_id` | string | No | - | Sub-agent session ID |
 
 ### Extract Content from URL
 
 ```bash
-mcporter call http://brave-scraper-mcp:8080/mcp brave_extract url="https://example.com/article" max_length=5000
+mcporter call brave-scraper.brave_extract url="https://example.com/article"
 ```
 
-Parameters:
-- `url` (required): URL to extract content from
-- `max_length` (optional): Max characters, default 5000
+```bash
+mcporter call brave-scraper.brave_extract url="https://example.com" max_length:10000
+```
 
-Returns: Clean, readable text content from the page.
+**Parameters:**
+| Param | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `url` | string | Yes | - | URL to extract |
+| `max_length` | integer | No | 5000 | Max characters |
+| `session_id` | string | No | - | Sub-agent session ID |
+
+### Scrape Page as Markdown
+
+```bash
+mcporter call brave-scraper.brave_scrape_page url="https://example.com"
+```
+
+```bash
+mcporter call brave-scraper.brave_scrape_page url="https://example.com" include_images:true
+```
+
+### Browser Automation
+
+```bash
+mcporter call brave-scraper.browser_navigate url="https://example.com"
+mcporter call brave-scraper.browser_screenshot name="homepage" full_page:true
+mcporter call brave-scraper.browser_click selector="button.submit"
+mcporter call brave-scraper.browser_fill selector="input[name=email]" value="test@example.com"
+mcporter call brave-scraper.browser_hover selector=".menu-item"
+mcporter call brave-scraper.browser_evaluate script="document.title"
+mcporter call brave-scraper.browser_solve_captcha timeout:30
+mcporter call brave-scraper.browser_back
+```
 
 ## Using via Raw curl (for sub-agents without mcporter)
-
-Sub-agents in sandbox containers can use curl with MCP JSON-RPC protocol:
 
 ### List Available Tools
 
@@ -72,51 +110,28 @@ curl -s -X POST http://brave-scraper-mcp:8080/mcp/ \
   }'
 ```
 
-**Note**: The server uses SSE (Server-Sent Events), so requests may take 15-30 seconds.
-
-### Call brave_extract Tool
-
-```bash
-curl -s -X POST http://brave-scraper-mcp:8080/mcp/ \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "tools/call",
-    "params": {
-      "name": "brave_extract",
-      "arguments": {
-        "url": "https://example.com",
-        "max_length": 5000
-      }
-    },
-    "id": 3
-  }'
-```
-
 ## Available Tools
 
 | Tool | Description | Required Params | Optional Params |
 |------|-------------|-----------------|-----------------|
-| `brave_search` | Search Brave Search | `query` | `count` (default: 10) |
-| `brave_extract` | Extract clean content | `url` | `max_length` (default: 5000) |
-| `brave_scrape_page` | Scrape full page as Markdown | `url` | `include_images` (default: false) |
-| `browser_navigate` | Navigate browser | `url` | `wait_until` |
-| `browser_screenshot` | Take screenshot | `name` | `selector`, `full_page` |
+| `brave_search` | Search Brave Search | `query` | `count`, `page`, `session_id` |
+| `brave_extract` | Extract clean content | `url` | `max_length`, `session_id` |
+| `brave_scrape_page` | Scrape page as Markdown | `url` | `include_images`, `session_id` |
+| `browser_navigate` | Navigate to URL | `url` | `wait_until` |
+| `browser_back` | Navigate back | - | - |
+| `browser_screenshot` | Capture screenshot | `name` | `selector`, `full_page` |
 | `browser_click` | Click element | `selector` | - |
-| `browser_fill` | Fill input | `selector`, `value` | - |
+| `browser_fill` | Fill input field | `selector`, `value` | - |
+| `browser_hover` | Hover over element | `selector` | - |
+| `browser_evaluate` | Execute JavaScript | `script` | - |
 | `browser_solve_captcha` | Auto-solve CAPTCHA | - | `timeout` |
 
 ## Example: Research Workflow
 
 ```bash
-# 1. Search for information
-mcporter call http://brave-scraper-mcp:8080/mcp brave_search query="best practices for REST API design" count=5
-
-# 2. Extract content from top result
-mcporter call http://brave-scraper-mcp:8080/mcp brave_extract url="https://example.com/api-guide"
-
-# 3. Get structured content for analysis
+mcporter call brave-scraper.brave_search query="REST API best practices" count:5
+mcporter call brave-scraper.brave_extract url="https://example.com/api-guide"
+mcporter call brave-scraper.brave_scrape_page url="https://example.com/docs" include_images:true
 ```
 
 ## Troubleshooting
@@ -126,9 +141,9 @@ mcporter call http://brave-scraper-mcp:8080/mcp brave_extract url="https://examp
 - Check network access: Container must be on `traefik` network
 
 ### No Search Results
-- The server uses browser automation, may take 15-30 seconds
-- Check if CAPTCHA is blocking (rare for Brave Search)
+- Server uses browser automation (15-30 seconds)
+- CAPTCHA may be blocking (rare for Brave Search)
 
 ### MCP Protocol Errors
-- Always include both `Accept: application/json, text/event-stream` headers
+- Include both `Accept: application/json, text/event-stream` headers
 - Use `tools/call` method with `name` and `arguments` object

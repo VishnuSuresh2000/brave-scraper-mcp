@@ -2,27 +2,38 @@
 
 A stealth web scraping MCP (Model Context Protocol) server using **Patchright** for undetected browsing, **Xvfb** for anti-headless detection, and **PyAutoGUI** for CAPTCHA bypass. Provides Brave Search integration with smart content extraction.
 
+> **⚠️ NO API KEY REQUIRED** - This server uses a headless browser (Patchright) to scrape Brave Search directly. No API keys, no rate limits, no registration needed.
+
 ## Features
 
 - 🕵️ **Stealth Mode**: Uses Patchright (undetected Playwright fork) + Xvfb to avoid bot detection
-- 🔓 **CAPTCHA Support**: Auto-detects and solves Cloudflare Turnstile, hCaptcha, and reCAPTCHA
+- 🔓 **CAPTCHA Solving**: Auto-detects and solves Cloudflare Turnstile, hCaptcha, and reCAPTCHA
+- 📄 **Full Page Scraping**: Scrape any webpage and convert to clean Markdown
 - 🔍 **Brave Search**: Search the web without API keys
-- 📄 **Smart Extraction**: Clean content extraction with ad/navigation filtering
-- 🐳 **Docker Ready**: Production-ready containerized deployment with uv for fast builds
+
+## Server URL
+
+```
+http://brave-scraper-mcp:8080/mcp
+```
+
+**Health Check:** `http://brave-scraper-mcp:8080/health`
 
 ## Available Tools
 
 | Tool | Description |
 |------|-------------|
+| `brave_search` | Search Brave Search (no API key needed) |
+| `brave_extract` | Extract clean content from URL |
+| `brave_scrape_page` | Scrape full page as Markdown |
 | `browser_navigate` | Navigate to a URL |
+| `browser_back` | Navigate back in history |
 | `browser_screenshot` | Capture page/element screenshot |
 | `browser_click` | Click an element |
 | `browser_fill` | Fill input field |
 | `browser_hover` | Hover over element |
 | `browser_evaluate` | Execute JavaScript |
 | `browser_solve_captcha` | Auto-solve CAPTCHA challenges |
-| `brave_search` | Search Brave Search |
-| `brave_extract` | Extract clean content from URL |
 
 ## Quick Start
 

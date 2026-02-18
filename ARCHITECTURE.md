@@ -1,14 +1,14 @@
 # Brave Scraper MCP Server - Architecture
 
-**Task ID:** 35  
-**Status Tracker:** http://172.18.0.8:8000  
-**Created:** 2026-02-09
+**Status:** Production Ready
 
 ---
 
 ## Overview
 
 A stealth web scraping MCP server using **Patchright + Xvfb + PyAutoGUI** for Brave Search with CAPTCHA bypass capabilities. Deployed as a Docker container with HTTP transport for mcporter integration.
+
+**Key Feature: NO API KEY REQUIRED** - Uses headless browser automation to scrape Brave Search directly.
 
 ---
 
@@ -78,12 +78,13 @@ brave-scraper-mcp/
 | `browser_evaluate` | Execute JavaScript | `script: str` |
 | `browser_solve_captcha` | Auto-solve CAPTCHA | `timeout: int = 30` |
 
-### Business Logic Tools
+### Brave Search Tools (No API Key Required)
 
 | Tool | Description | Parameters | Returns |
 |------|-------------|------------|---------|
 | `brave_search` | Search Brave Search | `query: str`, `count: int = 10` | `list[SearchResult]` |
 | `brave_extract` | Extract clean content from URL | `url: str`, `max_length: int = 5000` | `ExtractedContent` |
+| `brave_scrape_page` | Scrape full page as Markdown | `url: str`, `include_images: bool = False` | `str (Markdown)` |
 
 ### Data Models
 

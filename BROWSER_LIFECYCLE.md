@@ -1,6 +1,6 @@
 # Browser Lifecycle Management
 
-The Brave Scraper MCP server implements a robust browser lifecycle management system to handle concurrent requests from both the Main Agent and multiple Sub-Agents.
+The Brave Scraper MCP server implements a robust browser lifecycle management system using Patchright (headless browser) for stealth web scraping. No API key is required - all scraping is done via browser automation.
 
 ## Architecture
 
