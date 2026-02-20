@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.tools.brave_search import BraveSearchTools, ExtractedContent
+from src.tools.stealth_search import StealthSearchTools, ExtractedContent
 
 
 class TestBrowserParity:
@@ -51,7 +51,7 @@ class TestBrowserParity:
             </body>
         </html>
         """
-        
+
         # Mock evaluate to return the main article content (simulating JS extraction)
         mock_page.evaluate.return_value = (
             "Python (programming language) Python is a high-level, general-purpose "
@@ -61,14 +61,14 @@ class TestBrowserParity:
             "structured, object-oriented and functional programming."
         )
 
-        tools = BraveSearchTools(mock_page)
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://en.wikipedia.org/wiki/Python", max_length=5000)
 
         # Validate extraction matches browser-visible content
         assert "python" in result.title.lower()
         assert "high-level" in result.content or "general-purpose" in result.content
         assert "code readability" in result.content or "programming" in result.content
-        
+
         # Validate main content is present
         assert len(result.content) > 50, "Should extract meaningful content"
 
@@ -99,25 +99,25 @@ class TestBrowserParity:
             </body>
         </html>
         """
-        
+
         mock_page.evaluate.return_value = (
             "Main Article Title This is the main content that should be preserved. "
             "It contains important information about the topic."
         )
 
-        tools = BraveSearchTools(mock_page)
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://example.com/article", max_length=5000)
 
         # Main content should be preserved
         assert "main content that should be preserved" in result.content.lower()
         assert "important information about the topic" in result.content.lower()
-        
+
         # Navigation should be removed
         assert "home" not in result.content.lower() or "home" not in result.content[:100]
-        
+
         # Footer content should be removed/minimized
         assert "copyright 2024" not in result.content.lower()
-        
+
         # Sidebar should not dominate
         sidebar_keywords = ["related articles", "article 1", "article 2"]
         sidebar_presence = sum(1 for kw in sidebar_keywords if kw in result.content.lower())
@@ -142,18 +142,18 @@ class TestBrowserParity:
             </body>
         </html>
         """
-        
+
         mock_page.evaluate.return_value = (
             "Tech News Article This is the actual article content about technology. "
             "Follow us on social media for more updates!"
         )
 
-        tools = BraveSearchTools(mock_page)
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://example.com/news", max_length=5000)
 
         # Main content preserved
         assert "actual article content about technology" in result.content.lower()
-        
+
         # Social prompts cleaned
         content_lower = result.content.lower()
         assert "share on twitter" not in content_lower
@@ -180,19 +180,19 @@ class TestBrowserParity:
             </body>
         </html>
         """
-        
+
         mock_page.evaluate.return_value = (
             "Article About Data Privacy Data privacy is an important topic in the "
             "modern digital age. Organizations must comply with GDPR and other regulations."
         )
 
-        tools = BraveSearchTools(mock_page)
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://example.com/privacy", max_length=5000)
 
         # Main content preserved
         assert "data privacy is an important topic" in result.content.lower()
         assert "gdpr and other regulations" in result.content.lower()
-        
+
         # Cookie notice cleaned
         content_lower = result.content.lower()
         assert "we use cookies to improve" not in content_lower
@@ -222,19 +222,19 @@ class TestBrowserParity:
             </body>
         </html>
         """
-        
+
         mock_page.evaluate.return_value = (
             "Premium Content Article This article provides valuable insights on the topic. "
             "Subscribe to our Newsletter Get the latest articles delivered to your inbox! "
             "Subscribe to read the full article."
         )
 
-        tools = BraveSearchTools(mock_page)
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://example.com/premium", max_length=5000)
 
         # Main content preserved
         assert "valuable insights on the topic" in result.content.lower()
-        
+
         # Check that content cleaning was applied (some noise may remain but main content dominates)
         content_lower = result.content.lower()
         main_content_present = "valuable insights" in content_lower
@@ -258,14 +258,14 @@ def greet(name):
             </body>
         </html>
         """
-        
+
         mock_page.evaluate.return_value = (
             "Python Tutorial Here's how to define a function in Python: "
-            "def greet(name): print(f\"Hello, {name}!\") "
+            'def greet(name): print(f"Hello, {name}!") '
             "This function takes a name parameter and prints a greeting."
         )
 
-        tools = BraveSearchTools(mock_page)
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://example.com/python", max_length=5000)
 
         # Code-related content preserved
@@ -289,13 +289,13 @@ def greet(name):
             </body>
         </html>
         """
-        
+
         # Main content only - 10 words
         mock_page.evaluate.return_value = (
             "Short Article This is a brief article with exactly ten words here now."
         )
 
-        tools = BraveSearchTools(mock_page)
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://example.com/short", max_length=5000)
 
         # Word count should reflect main content, not include footer noise
@@ -320,13 +320,13 @@ def greet(name):
             </body>
         </html>
         """
-        
+
         mock_page.evaluate.return_value = (
             "Main Title Section 1 Content of section 1. Section 2 Content of section 2. "
             "Subsection 2.1 Content of subsection 2.1."
         )
 
-        tools = BraveSearchTools(mock_page)
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://example.com/structured", max_length=5000)
 
         # All sections should be present
@@ -341,15 +341,15 @@ class TestContentCleaningAccuracy:
 
     @pytest.fixture
     def tools(self):
-        """Create BraveSearchTools instance for testing cleaning methods."""
+        """Create StealthSearchTools instance for testing cleaning methods."""
         mock_page = AsyncMock()
-        return BraveSearchTools(mock_page)
+        return StealthSearchTools(mock_page)
 
     def test_clean_removes_excess_whitespace(self, tools):
         """Test that excess whitespace is normalized."""
         dirty = "This   has    too     much      whitespace."
         clean = tools._clean_content(dirty)
-        
+
         assert "   " not in clean
         assert "    " not in clean
         assert "This has too much whitespace." in clean
@@ -358,7 +358,7 @@ class TestContentCleaningAccuracy:
         """Test that text is properly normalized."""
         dirty = "Check out https://example.com for more info"
         clean = tools._clean_content(dirty)
-        
+
         # The cleaner normalizes whitespace and removes some patterns
         # URLs are handled in JS extraction, not in _clean_content
         assert len(clean) > 0, "Content should not be empty"
@@ -371,7 +371,7 @@ class TestContentCleaningAccuracy:
             "The name comes from Monty Python's Flying Circus."
         )
         clean = tools._clean_content(original)
-        
+
         # Key phrases should remain
         assert "programming language" in clean.lower()
         assert "guido van rossum" in clean.lower() or "created by" in clean.lower()
@@ -384,7 +384,7 @@ class TestContentCleaningAccuracy:
             "Third sentence continues. Fourth sentence ends."
         )
         summary = tools._generate_summary(text, sentences=2)
-        
+
         assert "First sentence" in summary
         assert "Second sentence" in summary
         # Third should not be in 2-sentence summary
@@ -414,18 +414,20 @@ class TestBrowserVsExtractionParity:
         
         The product will be available in Q2 2026.
         """
-        
+
         # Create mock page with this content
         mock_page = AsyncMock()
         mock_page.goto = AsyncMock()
         mock_page.wait_for_timeout = AsyncMock()
-        mock_page.content.return_value = f"<html><body><article>{browser_visible}</article></body></html>"
+        mock_page.content.return_value = (
+            f"<html><body><article>{browser_visible}</article></body></html>"
+        )
         mock_page.evaluate.return_value = " ".join(browser_visible.split())
         mock_page.query_selector = AsyncMock(return_value=None)
-        
-        tools = BraveSearchTools(mock_page)
+
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://news.example.com/article", max_length=5000)
-        
+
         # Validate key content is preserved
         assert "tech company" in result.content.lower()
         assert "new product" in result.content.lower()
@@ -457,17 +459,17 @@ class TestBrowserVsExtractionParity:
         Free tier: 100 requests/hour
         Pro tier: 1000 requests/hour
         """
-        
+
         mock_page = AsyncMock()
         mock_page.goto = AsyncMock()
         mock_page.wait_for_timeout = AsyncMock()
         mock_page.content.return_value = f"<html><body><main>{browser_visible}</main></body></html>"
         mock_page.evaluate.return_value = " ".join(browser_visible.split())
         mock_page.query_selector = AsyncMock(return_value=None)
-        
-        tools = BraveSearchTools(mock_page)
+
+        tools = StealthSearchTools(mock_page)
         result = await tools.extract("https://docs.example.com/api/auth", max_length=5000)
-        
+
         # Documentation elements should be preserved
         assert "api key" in result.content.lower()
         assert "authorization" in result.content.lower() or "bearer" in result.content.lower()

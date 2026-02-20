@@ -1,4 +1,4 @@
-"""Brave Search and content extraction tools."""
+"""Stealth Search and content extraction tools."""
 
 import logging
 from typing import List, Optional
@@ -9,6 +9,7 @@ from patchright.async_api import Page
 
 try:
     from markdownify import markdownify as md
+
     MARKDOWNIFY_AVAILABLE = True
 except ImportError:
     md = None
@@ -64,8 +65,8 @@ class ExtractedContent(BaseModel):
     word_count: int
 
 
-class BraveSearchTools:
-    """Tools for Brave Search and content extraction."""
+class StealthSearchTools:
+    """Tools for Stealth Search and content extraction."""
 
     BRAVE_SEARCH_URL = "https://search.brave.com/search"
     MAX_PAGE = 100
@@ -480,7 +481,7 @@ class BraveSearchTools:
 
         # Navigate to the URL
         await self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
-        
+
         # Give JS a bit more time to settle for SPA-like sites
         await self.page.wait_for_timeout(3000)
 
@@ -497,10 +498,11 @@ class BraveSearchTools:
                 kwargs["strip"] = ["img"]
 
             markdown = md(html_content, **kwargs)
-            
+
             # Basic cleanup: remove excess newlines
             import re
-            markdown = re.sub(r'\n{3,}', '\n\n', markdown)
+
+            markdown = re.sub(r"\n{3,}", "\n\n", markdown)
             return markdown.strip()
         else:
             # Fallback to basic text if markdownify is not available
@@ -926,7 +928,7 @@ class BraveSearchTools:
 
 
 # Convenience functions for direct usage
-async def brave_search(
+async def stealth_search(
     page: Page,
     query: str,
     count: int = 10,
@@ -934,7 +936,7 @@ async def brave_search(
     session_id: Optional[str] = None,
     manager=None,
 ) -> SearchResponse:
-    """Convenience function to search Brave.
+    """Convenience function to search.
 
     Args:
         page: Playwright page object (used if no session_id provided)
@@ -952,11 +954,11 @@ async def brave_search(
         browser_instance = await manager.get_or_create_browser(session_id)
         page = browser_instance.page
     # If no session_id, use the provided page (existing behavior)
-    tools = BraveSearchTools(page)
+    tools = StealthSearchTools(page)
     return await tools.search(query, count, page=page_num)
 
 
-async def brave_extract(
+async def stealth_extract(
     page: Page, url: str, max_length: int = 5000, session_id: Optional[str] = None, manager=None
 ) -> ExtractedContent:
     """Convenience function to extract content.
@@ -976,11 +978,11 @@ async def brave_extract(
         browser_instance = await manager.get_or_create_browser(session_id)
         page = browser_instance.page
     # If no session_id, use the provided page (existing behavior)
-    tools = BraveSearchTools(page)
+    tools = StealthSearchTools(page)
     return await tools.extract(url, max_length)
 
 
-async def brave_scrape_page(
+async def stealth_scrape(
     page: Page,
     url: str,
     include_images: bool = False,
@@ -1002,5 +1004,5 @@ async def brave_scrape_page(
     if session_id and manager:
         browser_instance = await manager.get_or_create_browser(session_id)
         page = browser_instance.page
-    tools = BraveSearchTools(page)
+    tools = StealthSearchTools(page)
     return await tools.scrape_page(url, include_images)

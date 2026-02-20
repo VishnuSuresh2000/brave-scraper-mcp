@@ -1,42 +1,42 @@
-# Brave Scraper MCP Server
+# Stealth Browser MCP Server
 
-[![GitHub repo](https://img.shields.io/badge/github-repo-000?logo=github)](https://github.com/VishnuSuresh2000/brave-scraper-mcp)
+[![GitHub repo](https://img.shields.io/badge/github-repo-000?logo=github)](https://github.com/VishnuSuresh2000/stealth-browser-mcp)
 
-A stealth web scraping MCP (Model Context Protocol) server using **Patchright** for undetected browsing, **Xvfb** for anti-headless detection, and **PyAutoGUI** for CAPTCHA bypass. Provides Brave Search integration with smart content extraction.
+A stealth web scraping MCP (Model Context Protocol) server using **Patchright** for undetected browsing, **Xvfb** for anti-headless detection, and **PyAutoGUI** for CAPTCHA bypass. Provides web search integration with smart content extraction.
 
-> **⚠️ NO API KEY REQUIRED** - This server uses a headless browser (Patchright) to scrape Brave Search directly. No API keys, no rate limits, no registration needed.
+> **⚠️ NO API KEY REQUIRED** - This server uses a headless browser (Patchright) to scrape web search directly. No API keys, no rate limits, no registration needed.
 
 ## Links
 
-- **GitHub Repository**: https://github.com/VishnuSuresh2000/brave-scraper-mcp
-- **Issues**: https://github.com/VishnuSuresh2000/brave-scraper-mcp/issues
-- **Skill Documentation**: See `skills/brave-scraper-mcp/` for agent integration details.
-- **Connecting Other MCP Clients**: `skills/brave-scraper-mcp/references/mcp-clients.md`
+- **GitHub Repository**: https://github.com/VishnuSuresh2000/stealth-browser-mcp
+- **Issues**: https://github.com/VishnuSuresh2000/stealth-browser-mcp/issues
+- **Skill Documentation**: See `skills/stealth-browser-mcp/` for agent integration details.
+- **Connecting Other MCP Clients**: `skills/stealth-browser-mcp/references/mcp-clients.md`
 
 ## Features
 
 - 🕵️ **Stealth Mode**: Uses Patchright (undetected Playwright fork) + Xvfb to avoid bot detection
 - 🔓 **CAPTCHA Solving**: Auto-detects and solves Cloudflare Turnstile, hCaptcha, and reCAPTCHA
 - 📄 **Full Page Scraping**: Scrape any webpage and convert to clean Markdown
-- 🔍 **Brave Search**: Search the web without API keys
+- 🔍 **Web Search**: Search the web without API keys
 - 🤖 **AI-Ready Extraction**: Content optimized for LLMs/RAG – clean, structured, no noise
-- 📋 **AI Summary from Brave**: `brave_search` automatically extracts Brave's own AI-generated summary (when available) and cited sources
+- 📋 **AI Summary from Search**: `stealth_search` automatically extracts search engine's own AI-generated summary (when available) and cited sources
 
 ## Server URL
 
 ```
-http://brave-scraper-mcp:8080/mcp
+http://stealth-browser-mcp:8080/mcp
 ```
 
-**Health Check:** `http://brave-scraper-mcp:8080/health`
+**Health Check:** `http://stealth-browser-mcp:8080/health`
 
 ## Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `brave_search` | Search Brave Search (no API key needed). **Returns AI summary** if Brave generates one, plus cited sources |
-| `brave_extract` | Extract clean content from URL |
-| `brave_scrape_page` | Scrape full page as Markdown |
+| `stealth_search` | Search the web (no API key needed). **Returns AI summary** if available, plus cited sources |
+| `stealth_extract` | Extract clean content from URL |
+| `stealth_scrape` | Scrape full page as Markdown |
 | `browser_navigate` | Navigate to a URL |
 | `browser_back` | Navigate back in history |
 | `browser_screenshot` | Capture page/element screenshot |
@@ -56,8 +56,8 @@ http://brave-scraper-mcp:8080/mcp
 ### 1. Clone and Build
 
 ```bash
-git clone https://github.com/VishnuSuresh2000/brave-scraper-mcp.git
-cd brave-scraper-mcp
+git clone https://github.com/VishnuSuresh2000/stealth-browser-mcp.git
+cd stealth-browser-mcp
 docker compose up -d --build
 ```
 
@@ -69,17 +69,17 @@ docker ps
 
 # Test health endpoint
 curl http://localhost:8080/health
-# Expected: {"status": "healthy", "server": "brave-scraper-mcp"}
+# Expected: {"status": "healthy", "server": "stealth-browser-mcp"}
 ```
 
 ### 3. Configure mcporter (Optional)
 
 ```bash
 # Add to mcporter config
-mcporter config add brave-scraper --url http://localhost:8080/mcp
+mcporter config add stealth-browser --url http://localhost:8080/mcp
 
 # List available tools
-mcporter list brave-scraper
+mcporter list stealth-browser
 ```
 
 ## Using with OpenClaw Agents
@@ -94,10 +94,10 @@ Copy the skill folder to your agent's workspace or global skills directory:
 
 ```bash
 # Workspace-specific (preferred)
-cp -r skills/brave-scraper-mcp ~/.openclaw/workspace/your-agent/skills/
+cp -r skills/stealth-browser-mcp ~/.openclaw/workspace/your-agent/skills/
 
 # Global (available to all agents)
-cp -r skills/brave-scraper-mcp ~/.openclaw/skills/
+cp -r skills/stealth-browser-mcp ~/.openclaw/skills/
 ```
 
 #### MCP Server Import (mcporter)
@@ -105,7 +105,7 @@ cp -r skills/brave-scraper-mcp ~/.openclaw/skills/
 Add the running server as an MCP source:
 
 ```bash
-mcporter config add brave-scraper --url http://localhost:8080/mcp
+mcporter config add stealth-browser --url http://localhost:8080/mcp
 ```
 
 Then import into OpenClaw:

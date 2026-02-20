@@ -1,10 +1,16 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from src.tools.brave_search import BraveSearchTools, SearchResult, SearchResponse, brave_search
+from src.tools.stealth_search import (
+    StealthSearchTools,
+    SearchResult,
+    SearchResponse,
+    stealth_search,
+)
+
 
 class TestValidationErrors:
-    """Test suite for input validation in BraveSearchTools."""
+    """Test suite for input validation in StealthSearchTools."""
 
     @pytest.fixture
     def mock_page(self):
@@ -18,8 +24,8 @@ class TestValidationErrors:
 
     @pytest.fixture
     def search_tools(self, mock_page):
-        """Create a BraveSearchTools instance."""
-        return BraveSearchTools(mock_page)
+        """Create a StealthSearchTools instance."""
+        return StealthSearchTools(mock_page)
 
     @pytest.mark.asyncio
     async def test_search_empty_query_raises_error(self, search_tools, mock_page):
@@ -95,11 +101,11 @@ class TestValidationConstants:
 
     def test_max_page_constant_exists(self):
         """Test that MAX_PAGE constant exists and is correct."""
-        assert BraveSearchTools.MAX_PAGE == 100
+        assert StealthSearchTools.MAX_PAGE == 100
 
     def test_max_count_constant_exists(self):
         """Test that MAX_COUNT constant exists and is correct."""
-        assert BraveSearchTools.MAX_COUNT == 100
+        assert StealthSearchTools.MAX_COUNT == 100
 
 
 class TestServerValidation:
@@ -113,7 +119,7 @@ class TestServerValidation:
         server_instance = BraveScraperServer.__new__(BraveScraperServer)
         server_instance.browser_manager = MagicMock()
         server_instance.browser_manager.page = AsyncMock()
-        
+
         with pytest.raises(ValueError, match="Selector cannot be empty"):
             await server_instance._execute_tool("browser_click", {"selector": ""})
 
@@ -125,7 +131,7 @@ class TestServerValidation:
         server_instance = BraveScraperServer.__new__(BraveScraperServer)
         server_instance.browser_manager = MagicMock()
         server_instance.browser_manager.page = AsyncMock()
-        
+
         with pytest.raises(ValueError, match="Selector cannot be empty"):
             await server_instance._execute_tool("browser_click", {"selector": "   "})
 
@@ -137,7 +143,7 @@ class TestServerValidation:
         server_instance = BraveScraperServer.__new__(BraveScraperServer)
         server_instance.browser_manager = MagicMock()
         server_instance.browser_manager.page = AsyncMock()
-        
+
         with pytest.raises(ValueError, match="Selector cannot be empty"):
             await server_instance._execute_tool("browser_fill", {"selector": "", "value": "test"})
 
@@ -149,6 +155,6 @@ class TestServerValidation:
         server_instance = BraveScraperServer.__new__(BraveScraperServer)
         server_instance.browser_manager = MagicMock()
         server_instance.browser_manager.page = AsyncMock()
-        
+
         with pytest.raises(ValueError, match="Selector cannot be empty"):
             await server_instance._execute_tool("browser_hover", {"selector": ""})

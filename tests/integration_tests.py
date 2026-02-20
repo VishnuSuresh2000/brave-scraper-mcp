@@ -29,10 +29,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Add src to path
-sys.path.insert(0, "/home/node/.openclaw/workspace/brave-scraper-mcp")
+sys.path.insert(0, "/home/node/.openclaw/workspace/stealth-browser-mcp")
 
 from src.browser.manager import BrowserManager
-from src.tools.brave_search import BraveSearchTools
+from src.tools.stealth_search import StealthSearchTools
 
 
 async def test_stealth():
@@ -129,13 +129,13 @@ async def test_stealth():
     return results
 
 
-async def test_brave_search():
-    """Test Brave Search with various queries"""
+async def test_search():
+    """Test Search with various queries"""
     logger.info("\n" + "=" * 60)
-    logger.info("TEST 2: Brave Search Tests")
+    logger.info("TEST 2: Search Tests")
     logger.info("=" * 60)
 
-    results = {"test": "Brave Search", "status": "PENDING", "queries": []}
+    results = {"test": "Search", "status": "PENDING", "queries": []}
 
     test_queries = [
         "python programming tutorial",
@@ -148,7 +148,7 @@ async def test_brave_search():
         browser = BrowserManager()
         await browser.start()
 
-        tools = BraveSearchTools(browser.page)
+        tools = StealthSearchTools(browser.page)
 
         all_passed = True
         for query in test_queries:
@@ -215,7 +215,7 @@ async def test_content_extraction():
         browser = BrowserManager()
         await browser.start()
 
-        tools = BraveSearchTools(browser.page)
+        tools = StealthSearchTools(browser.page)
 
         logger.info(f"Extracting content from: {test_url}")
         extracted = await tools.extract(test_url, max_length=3000)
@@ -293,8 +293,8 @@ async def run_all_tests():
     stealth_results = await test_stealth()
     all_results["tests"].append(stealth_results)
 
-    # Test 2: Brave Search
-    search_results = await test_brave_search()
+    # Test 2: Search
+    search_results = await test_search()
     all_results["tests"].append(search_results)
 
     # Test 3: Content Extraction

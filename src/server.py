@@ -20,10 +20,10 @@ from src.browser.captcha import CaptchaSolver
 from src.tools.navigation import NavigationTools
 from src.tools.interaction import InteractionTools
 from src.tools.extraction import ExtractionTools
-from src.tools.brave_search import BraveSearchTools, SearchResult, ExtractedContent
+from src.tools.stealth_search import StealthSearchTools, SearchResult, ExtractedContent
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("brave-scraper-mcp")
+logger = logging.getLogger("stealth-browser-mcp")
 
 # Environment variable configuration
 BROWSER_TIMEOUT_MINUTES = int(os.environ.get("BROWSER_TIMEOUT_MINUTES", "30"))
@@ -33,12 +33,12 @@ class BraveScraperServer:
     """MCP Server for Brave Search web scraping with stealth capabilities."""
 
     def __init__(self):
-        self.server = Server("brave-scraper-mcp")
+        self.server = Server("stealth-browser-mcp")
         self.browser_manager: Optional[BrowserManager] = None
         self.nav_tools: Optional[NavigationTools] = None
         self.interact_tools: Optional[InteractionTools] = None
         self.extract_tools: Optional[ExtractionTools] = None
-        self.brave_search_tools: Optional[BraveSearchTools] = None
+        self.stealth_search_tools: Optional[StealthSearchTools] = None
 
         self._setup_handlers()
 
@@ -193,10 +193,10 @@ class BraveScraperServer:
                         "additionalProperties": False,
                     },
                 ),
-                # Brave Search Tools
+                # Stealth Search Tools
                 Tool(
-                    name="brave_search",
-                    description="Search Brave Search and return structured results",
+                    name="stealth_search",
+                    description="Search and return structured results",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -229,7 +229,7 @@ class BraveScraperServer:
                     },
                 ),
                 Tool(
-                    name="brave_extract",
+                    name="stealth_extract",
                     description="Extract clean, readable content from a URL",
                     inputSchema={
                         "type": "object",
@@ -254,7 +254,7 @@ class BraveScraperServer:
                     },
                 ),
                 Tool(
-                    name="brave_scrape_page",
+                    name="stealth_scrape",
                     description="Deep page scraper that fetches and extracts the full content of a URL in Markdown format",
                     inputSchema={
                         "type": "object",
@@ -294,7 +294,7 @@ class BraveScraperServer:
 
         try:
             # Use isolated context for search/extract/scrape to prevent race conditions
-            if name in ("brave_search", "brave_extract", "brave_scrape_page"):
+            if name in ("stealth_search", "stealth_extract", "stealth_scrape"):
                 result = await self._execute_tool_isolated(name, arguments)
             else:
                 result = await self._execute_tool(name, arguments)
@@ -327,23 +327,23 @@ class BraveScraperServer:
                 _, page = await browser_instance.create_tab()
 
             try:
-                if name == "brave_search":
-                    brave_tools = BraveSearchTools(page)
-                    response = await brave_tools.search(
+                if name == "stealth_search":
+                    stealth_tools = StealthSearchTools(page)
+                    response = await stealth_tools.search(
                         query=arguments["query"],
                         count=arguments.get("count", 10),
                         page=arguments.get("page", 1),
                     )
                     return self._format_search_response(response)
-                elif name == "brave_extract":
-                    brave_tools = BraveSearchTools(page)
-                    content = await brave_tools.extract(
+                elif name == "stealth_extract":
+                    stealth_tools = StealthSearchTools(page)
+                    content = await stealth_tools.extract(
                         url=arguments["url"], max_length=arguments.get("max_length", 5000)
                     )
                     return self._format_extract_response(content)
-                elif name == "brave_scrape_page":
-                    brave_tools = BraveSearchTools(page)
-                    markdown = await brave_tools.scrape_page(
+                elif name == "stealth_scrape":
+                    stealth_tools = StealthSearchTools(page)
+                    markdown = await stealth_tools.scrape_page(
                         url=arguments["url"], include_images=arguments.get("include_images", False)
                     )
                     return markdown
@@ -353,23 +353,23 @@ class BraveScraperServer:
         else:
             # Use shared browser with isolated context (default behavior)
             async with self.browser_manager.isolated_context() as page:
-                if name == "brave_search":
-                    brave_tools = BraveSearchTools(page)
-                    response = await brave_tools.search(
+                if name == "stealth_search":
+                    stealth_tools = StealthSearchTools(page)
+                    response = await stealth_tools.search(
                         query=arguments["query"],
                         count=arguments.get("count", 10),
                         page=arguments.get("page", 1),
                     )
                     return self._format_search_response(response)
-                elif name == "brave_extract":
-                    brave_tools = BraveSearchTools(page)
-                    content = await brave_tools.extract(
+                elif name == "stealth_extract":
+                    stealth_tools = StealthSearchTools(page)
+                    content = await stealth_tools.extract(
                         url=arguments["url"], max_length=arguments.get("max_length", 5000)
                     )
                     return self._format_extract_response(content)
-                elif name == "brave_scrape_page":
-                    brave_tools = BraveSearchTools(page)
-                    markdown = await brave_tools.scrape_page(
+                elif name == "stealth_scrape":
+                    stealth_tools = StealthSearchTools(page)
+                    markdown = await stealth_tools.scrape_page(
                         url=arguments["url"], include_images=arguments.get("include_images", False)
                     )
                     return markdown
@@ -480,9 +480,9 @@ class BraveScraperServer:
                 error_msg = result.get("error", "Unknown error")
                 return f"Failed to solve CAPTCHA: {error_msg}"
 
-        elif name == "brave_scrape_page":
-            brave_tools = BraveSearchTools(page)
-            markdown = await brave_tools.scrape_page(
+        elif name == "stealth_scrape":
+            stealth_tools = StealthSearchTools(page)
+            markdown = await stealth_tools.scrape_page(
                 url=arguments["url"], include_images=arguments.get("include_images", False)
             )
             return markdown
@@ -528,7 +528,7 @@ class BraveScraperServer:
         # Health endpoint
         async def health_check(request):
             """Health check endpoint for Docker/container orchestration."""
-            return JSONResponse({"status": "healthy", "server": "brave-scraper-mcp"})
+            return JSONResponse({"status": "healthy", "server": "stealth-browser-mcp"})
 
         # Create session manager
         session_manager = StreamableHTTPSessionManager(self.server, stateless=True)

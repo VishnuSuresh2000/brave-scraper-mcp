@@ -1,15 +1,15 @@
 """
-Tests for AI Summary extraction feature in Brave Search.
+Tests for AI Summary extraction feature.
 """
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.tools.brave_search import (
+from src.tools.stealth_search import (
     AISummary,
     SearchResponse,
     SearchResult,
-    BraveSearchTools,
+    StealthSearchTools,
 )
 
 
@@ -89,8 +89,8 @@ class TestAISummaryExtraction:
 
     @pytest.fixture
     def search_tools(self, mock_page):
-        """Create BraveSearchTools with mock page."""
-        return BraveSearchTools(mock_page)
+        """Create StealthSearchTools with mock page."""
+        return StealthSearchTools(mock_page)
 
     @pytest.mark.asyncio
     async def test_ai_summary_extraction_with_chatllm_answer(self, search_tools, mock_page):
@@ -217,7 +217,7 @@ class TestAISummaryEdgeCases:
 
     @pytest.fixture
     def search_tools(self, mock_page):
-        return BraveSearchTools(mock_page)
+        return StealthSearchTools(mock_page)
 
     @pytest.mark.asyncio
     async def test_ai_summary_with_special_characters(self, search_tools, mock_page):
