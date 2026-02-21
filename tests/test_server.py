@@ -1,7 +1,7 @@
 """Tests for MCP server."""
 
 import pytest
-from src.server import BraveScraperServer
+from src.server import StealthBrowserServer
 
 
 class TestServerInitialization:
@@ -10,7 +10,7 @@ class TestServerInitialization:
     @pytest.mark.asyncio
     async def test_server_creates_instance(self):
         """Server instance can be created."""
-        server = BraveScraperServer()
+        server = StealthBrowserServer()
         assert server is not None
         assert server.server is not None
 
@@ -37,7 +37,7 @@ class TestToolRegistration:
 
     def test_tools_defined(self):
         """All tools are defined in server."""
-        server = BraveScraperServer()
+        server = StealthBrowserServer()
         # Check that tool handlers are registered
         assert hasattr(server.server, "_tool_cache")
         # The server has tools registered (we can't easily extract them in MCP v1.x,

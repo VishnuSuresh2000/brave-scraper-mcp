@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Brave Scraper MCP Server - Phase 1: Core Server
+Stealth Browser MCP Server - Phase 1: Core Server
 MCP server with basic browser automation tools.
 Supports both stdio and streamable-http transports.
 """
@@ -29,8 +29,8 @@ logger = logging.getLogger("stealth-browser-mcp")
 BROWSER_TIMEOUT_MINUTES = int(os.environ.get("BROWSER_TIMEOUT_MINUTES", "30"))
 
 
-class BraveScraperServer:
-    """MCP Server for Brave Search web scraping with stealth capabilities."""
+class StealthBrowserServer:
+    """MCP Server for Stealth Browser with web scraping capabilities."""
 
     def __init__(self):
         self.server = Server("stealth-browser-mcp")
@@ -382,7 +382,7 @@ class BraveScraperServer:
 
         # Add AI Summary if available
         if response.ai_summary:
-            formatted_output.append("🤖 BRAVE AI SUMMARY")
+            formatted_output.append("🤖 AI SUMMARY")
             formatted_output.append("=" * 20)
             formatted_output.append(response.ai_summary.text)
             if response.ai_summary.sources:
@@ -560,7 +560,7 @@ class BraveScraperServer:
 
 async def main():
     """Entry point with transport selection."""
-    parser = argparse.ArgumentParser(description="Brave Scraper MCP Server")
+    parser = argparse.ArgumentParser(description="Stealth Browser MCP Server")
     parser.add_argument(
         "--transport",
         choices=["stdio", "streamable-http"],
@@ -575,7 +575,7 @@ async def main():
     )
     args = parser.parse_args()
 
-    server = BraveScraperServer()
+    server = StealthBrowserServer()
 
     if args.transport == "stdio":
         await server.run_stdio()

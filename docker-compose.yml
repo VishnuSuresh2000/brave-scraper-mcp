@@ -1,10 +1,10 @@
 services:
-  brave-scraper-mcp:
+  stealth-browser-mcp:
     build:
       context: .
       dockerfile: Dockerfile
-    image: brave-scraper-mcp:latest
-    container_name: brave-scraper-mcp
+    image: stealth-browser-mcp:latest
+    container_name: stealth-browser-mcp
     
     ports:
       - "8080:8080"

@@ -120,7 +120,7 @@ Check that the skill is eligible and tools are available:
 
 ```bash
 openclaw skills list --eligible
-openclaw skills info brave-scraper-mcp
+openclaw skills info stealth-browser-mcp
 ```
 
 ### Documentation
@@ -135,15 +135,15 @@ openclaw skills info brave-scraper-mcp
 ### Via mcporter CLI
 
 ```bash
-# Search Brave
-mcporter call brave-scraper.brave_search query="python async programming" count:5
+# Search
+mcporter call stealth-browser.stealth_search query="python async programming" count:5
 
 # Extract content from URL
-mcporter call brave-scraper.brave_extract url="https://example.com/article"
+mcporter call stealth-browser.stealth_extract url="https://example.com/article"
 
 # Navigate and screenshot
-mcporter call brave-scraper.browser_navigate url="https://example.com"
-mcporter call brave-scraper.browser_screenshot name="homepage"
+mcporter call stealth-browser.browser_navigate url="https://example.com"
+mcporter call stealth-browser.browser_screenshot name="homepage"
 ```
 
 ### Via MCP Client (Agent Integration)
@@ -171,7 +171,7 @@ http://localhost:8080/mcp
 
 ```yaml
 services:
-  brave-scraper-mcp:
+  stealth-browser-mcp:
     build: .
     ports:
       - "8080:8080"
@@ -225,18 +225,18 @@ pytest tests/ --cov=src
 ## Architecture
 
 ```
-brave-scraper-mcp/
+stealth-browser-mcp/
 ├── src/
-│   ├── server.py           # MCP server entry point
-│   ├── browser/
-│   │   ├── manager.py      # Browser lifecycle
-│   │   ├── stealth.py      # Xvfb + anti-detection
-│   │   └── captcha.py      # CAPTCHA solving
-│   └── tools/
-│       ├── navigation.py   # browser_navigate, browser_back
-│       ├── interaction.py  # browser_click, browser_fill
-│       ├── extraction.py   # browser_screenshot, browser_evaluate
-│       └── brave_search.py # brave_search, brave_extract
+│ ├── server.py # MCP server entry point
+│ ├── browser/
+│ │ ├── manager.py # Browser lifecycle
+│ │ ├── stealth.py # Xvfb + anti-detection
+│ │ └── captcha.py # CAPTCHA solving
+│ └── tools/
+│ ├── navigation.py # browser_navigate, browser_back
+│ ├── interaction.py # browser_click, browser_fill
+│ ├── extraction.py # browser_screenshot, browser_evaluate
+│ └── stealth_search.py # stealth_search, stealth_extract
 ├── templates/              # CAPTCHA element templates
 ├── tests/                  # Unit and integration tests
 ├── Dockerfile
@@ -276,7 +276,7 @@ brave-scraper-mcp/
 
 ```bash
 # Check logs
-docker logs brave-scraper-mcp
+docker logs stealth-browser-mcp
 
 # Common issues:
 # - Xvfb lock file: Remove /tmp/.X99-lock
@@ -290,13 +290,13 @@ docker logs brave-scraper-mcp
 curl http://localhost:8080/health
 
 # Check mcporter config
-mcporter list brave-scraper
+mcporter list stealth-browser
 ```
 
 ### Bot detection
 
 - Ensure `STEALTH_MODE=true`
-- Check Xvfb is running: `docker exec brave-scraper-mcp ps aux | grep Xvfb`
+- Check Xvfb is running: `docker exec stealth-browser-mcp ps aux | grep Xvfb`
 - Test at https://bot.sannysoft.com/
 
 ## License

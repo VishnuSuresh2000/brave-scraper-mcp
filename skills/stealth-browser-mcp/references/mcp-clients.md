@@ -1,6 +1,6 @@
-# Connecting Brave Scraper MCP to Various Clients
+# Connecting Stealth Browser MCP to Various Clients
 
-The Brave Scraper MCP server is a standard MCP server and can be used with any MCP-compatible client. This guide covers popular clients.
+The Stealth Browser MCP server is a standard MCP server and can be used with any MCP-compatible client. This guide covers popular clients.
 
 ## Common Server Endpoint
 
@@ -21,7 +21,7 @@ Required headers when making direct HTTP calls:
 ### Using mcporter (recommended)
 
 ```bash
-mcporter config add brave-scraper --url http://localhost:8080/mcp
+mcporter config add stealth-browser --url http://localhost:8080/mcp
 mcporter config import opencode --copy
 ```
 
@@ -31,7 +31,7 @@ Edit `~/.openclaw/config/mcp.json` (or use command palette):
 ```json
 {
   "mcpServers": {
-    "brave-scraper": {
+    "stealth-browser": {
       "url": "http://localhost:8080/mcp"
     }
   }
@@ -44,7 +44,7 @@ Edit `~/.openclaw/config/mcp.json` (or use command palette):
 
 1. Open Cursor Settings → `MCP` tab
 2. Click `Add Server`
-3. Name: `brave-scraper`
+3. Name: `stealth-browser`
 4. Type: `HTTP`
 5. URL: `http://localhost:8080/mcp`
 6. Save
@@ -53,7 +53,7 @@ Alternatively, edit `~/.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "brave-scraper": {
+    "stealth-browser": {
       "url": "http://localhost:8080/mcp"
     }
   }
@@ -67,7 +67,7 @@ Alternatively, edit `~/.cursor/mcp.json`:
 Claude Code Desktop doesn't yet support adding custom MCP servers via UI. Use **mcporter** as a bridge:
 
 ```bash
-mcporter config add brave-scraper --url http://localhost:8080/mcp
+mcporter config add stealth-browser --url http://localhost:8080/mcp
 mcporter config import claude
 ```
 
@@ -81,9 +81,9 @@ Add to Continue config (`~/.continue/config.json`):
 ```json
 {
   "mcpServers": {
-    "brave-scraper": {
+    "stealth-browser": {
       "url": "http://localhost:8080/mcp",
-      "name": "Brave Scraper"
+      "name": "Stealth Browser"
     }
   }
 }
@@ -97,7 +97,7 @@ Windsurf supports MCP via config file:
 ```json
 {
   "mcpServers": {
-    "brave-scraper": {
+    "stealth-browser": {
       "url": "http://localhost:8080/mcp"
     }
   }
@@ -126,7 +126,7 @@ curl -s -X POST http://localhost:8080/mcp/ \
 
 ## Troubleshooting
 
-- **Connection refused**: Ensure Docker container is running (`docker ps | grep brave-scraper-mcp`)
+- **Connection refused**: Ensure Docker container is running (`docker ps | grep stealth-browser-mcp`)
 - **Network issues**: Server must be reachable from client (same host or forwarded port)
 - **SSE errors**: Double-check trailing slash (`/mcp/`)
 - **CORS**: Some clients enforce CORS; if using direct HTTP, ensure client allows it

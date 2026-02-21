@@ -1,10 +1,10 @@
 #!/bin/bash
-# Entrypoint for Brave Scraper MCP Server
+# Entrypoint for Stealth Browser MCP Server
 # Starts Xvfb virtual display and then runs the MCP server
 
 set -e
 
-echo "🚀 Starting Brave Scraper MCP Server..."
+echo "🚀 Starting Stealth Browser MCP Server..."
 
 # Start Xvfb on display :99 with proper screen resolution
 echo "📺 Starting Xvfb virtual display..."

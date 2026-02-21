@@ -1,4 +1,4 @@
-# Brave Scraper MCP Server - Optimized Production Dockerfile
+# Stealth Browser MCP Server - Optimized Production Dockerfile
 # Uses official uv Python image for fast package management
 
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim

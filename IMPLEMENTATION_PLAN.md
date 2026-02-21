@@ -8,7 +8,7 @@ Build the foundational MCP server with basic browser automation capabilities usi
 ## 1. File Structure
 
 ```
-brave-scraper-mcp/
+stealth-browser-mcp/
 ├── src/
 │   ├── __init__.py
 │   ├── server.py              # Main MCP server entry
@@ -65,7 +65,7 @@ pytest-asyncio>=0.21.0
 ```python
 #!/usr/bin/env python3
 """
-Brave Scraper MCP Server - Phase 1: Core Server
+Stealth Browser MCP Server - Phase 1: Core Server
 MCP server with basic browser automation tools.
 """
 
@@ -83,14 +83,14 @@ from src.tools.interaction import InteractionTools
 from src.tools.extraction import ExtractionTools
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("brave-scraper-mcp")
+logger = logging.getLogger("stealth-browser-mcp")
 
 
-class BraveScraperServer:
-    """MCP Server for Brave Search web scraping with stealth capabilities."""
+class StealthBrowserServer:
+    """MCP Server for Stealth Browser with web scraping capabilities."""
     
     def __init__(self):
-        self.server = Server("brave-scraper-mcp")
+        self.server = Server("stealth-browser-mcp")
         self.browser_manager: Optional[BrowserManager] = None
         self.nav_tools: Optional[NavigationTools] = None
         self.interact_tools: Optional[InteractionTools] = None
@@ -286,7 +286,7 @@ class BraveScraperServer:
 
 async def main():
     """Entry point."""
-    server = BraveScraperServer()
+    server = StealthBrowserServer()
     await server.run()
 
 
@@ -491,9 +491,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "brave-scraper-mcp"
+name = "stealth-browser-mcp"
 version = "0.1.0"
-description = "MCP server for stealth web scraping with Brave Search"
+description = "MCP server for stealth web scraping"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -513,7 +513,7 @@ dev = [
 ]
 
 [project.scripts]
-brave-scraper-mcp = "src.server:main"
+stealth-browser-mcp = "src.server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -536,7 +536,7 @@ asyncio_mode = "auto"
 
 **`src/__init__.py`:**
 ```python
-"""Brave Scraper MCP Server."""
+"""Stealth Browser MCP Server."""
 __version__ = "0.1.0"
 ```
 
@@ -584,7 +584,7 @@ async def browser_manager():
 ```python
 """Tests for MCP server."""
 import pytest
-from src.server import BraveScraperServer
+from src.server import StealthBrowserServer
 
 
 class TestServerInitialization:
@@ -593,7 +593,7 @@ class TestServerInitialization:
     @pytest.mark.asyncio
     async def test_server_creates_instance(self):
         """Server instance can be created."""
-        server = BraveScraperServer()
+        server = StealthBrowserServer()
         assert server is not None
         assert server.server is not None
     
@@ -620,7 +620,7 @@ class TestToolRegistration:
     @pytest.mark.asyncio
     async def test_tools_listed(self):
         """All tools are registered."""
-        server = BraveScraperServer()
+        server = StealthBrowserServer()
         tools = await server.server.list_tools()
         
         tool_names = [t.name for t in tools]
@@ -708,7 +708,7 @@ Phase 1 must complete before Phase 2 can begin:
 
 - **Phase 2** (Stealth): Requires working browser manager
 - **Phase 3** (CAPTCHA): Requires Xvfb + PyAutoGUI
-- **Phase 4** (Brave Search): Requires navigation + extraction tools
+- **Phase 4** (Stealth Search): Requires navigation + extraction tools
 - **Phase 5** (Data Cleanup): Requires content extraction
 - **Phase 6** (Testing): Requires all previous phases
 - **Phase 7** (Docker): Requires complete application

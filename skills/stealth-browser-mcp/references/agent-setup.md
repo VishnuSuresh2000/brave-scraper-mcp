@@ -1,6 +1,6 @@
 # Agent Setup Guide
 
-This guide explains how to configure AI agents to use the Brave Scraper MCP server.
+This guide explains how to configure AI agents to use the Stealth Browser MCP server.
 
 ## Prerequisites
 
@@ -13,8 +13,8 @@ This guide explains how to configure AI agents to use the Brave Scraper MCP serv
 ### 1. Deploy the MCP Server
 
 ```bash
-git clone https://github.com/VishnuSuresh2000/brave-scraper-mcp.git
-cd brave-scraper-mcp
+git clone https://github.com/VishnuSuresh2000/stealth-browser-mcp.git
+cd stealth-browser-mcp
 docker compose up -d --build
 ```
 
@@ -22,14 +22,14 @@ docker compose up -d --build
 
 ```bash
 curl http://localhost:8080/health
-# Expected: {"status": "healthy", "server": "brave-scraper-mcp"}
+# Expected: {"status": "healthy", "server": "stealth-browser-mcp"}
 ```
 
 ### 3. Configure mcporter (Optional)
 
 ```bash
-mcporter config add brave-scraper --url http://brave-scraper-mcp:8080/mcp
-mcporter list brave-scraper
+mcporter config add stealth-browser --url http://stealth-browser-mcp:8080/mcp
+mcporter list stealth-browser
 ```
 
 ## Agent Configuration
@@ -40,8 +40,8 @@ Add to your agent's skill configuration:
 
 ```yaml
 skills:
-  - name: brave-scraper-mcp
-    url: http://brave-scraper-mcp:8080/mcp
+  - name: stealth-browser-mcp
+    url: http://stealth-browser-mcp:8080/mcp
 ```
 
 ### For Claude Desktop
@@ -51,8 +51,8 @@ Add to `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "brave-scraper-mcp": {
-      "url": "http://brave-scraper-mcp:8080/mcp"
+    "stealth-browser-mcp": {
+      "url": "http://stealth-browser-mcp:8080/mcp"
     }
   }
 }
@@ -62,7 +62,7 @@ Add to `claude_desktop_config.json`:
 
 Configure the MCP client to connect to:
 ```
-http://brave-scraper-mcp:8080/mcp
+http://stealth-browser-mcp:8080/mcp
 ```
 
 ## Network Requirements
@@ -70,7 +70,7 @@ http://brave-scraper-mcp:8080/mcp
 The MCP server must be accessible from your agent's container:
 
 1. **Same Docker Network**: Add your agent container to the `traefik` network
-2. **Health Check**: Verify connectivity with `curl http://brave-scraper-mcp:8080/health`
+2. **Health Check**: Verify connectivity with `curl http://stealth-browser-mcp:8080/health`
 
 ```yaml
 # docker-compose.yml for your agent
@@ -93,9 +93,9 @@ This server uses browser automation (Patchright) to access Brave Search directly
 
 | Tool | Purpose |
 |------|---------|
-| `brave_search` | Web search via Brave |
-| `brave_extract` | Extract clean content |
-| `brave_scrape_page` | Full page as Markdown |
+| `stealth_search` | Web search via Brave |
+| `stealth_extract` | Extract clean content |
+| `stealth_scrape` | Full page as Markdown |
 | `browser_navigate` | Navigate to URL |
 | `browser_screenshot` | Capture screenshots |
 | `browser_click` | Click elements |
@@ -111,7 +111,7 @@ This server uses browser automation (Patchright) to access Brave Search directly
 
 ```bash
 # Check container status
-docker ps | grep brave-scraper-mcp
+docker ps | grep stealth-browser-mcp
 
 # Check network connectivity
 docker network inspect traefik

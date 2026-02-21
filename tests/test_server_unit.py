@@ -1,8 +1,8 @@
-"""Unit tests for BraveScraperServer tool routing and logic."""
+"""Unit tests for StealthBrowserServer tool routing and logic."""
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from src.server import BraveScraperServer
+from src.server import StealthBrowserServer
 from mcp.types import TextContent
 
 
@@ -10,7 +10,7 @@ from mcp.types import TextContent
 def server():
     """Create a server instance with mocked components."""
     with patch("src.server.BrowserManager"):
-        server = BraveScraperServer()
+        server = StealthBrowserServer()
         server.browser_manager = MagicMock()
         server.browser_manager.page = AsyncMock()
         return server

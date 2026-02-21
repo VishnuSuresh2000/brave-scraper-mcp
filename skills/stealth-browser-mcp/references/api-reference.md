@@ -1,10 +1,10 @@
-# Brave Scraper MCP Server API Reference
+# Stealth Browser MCP Server API Reference
 
 > **NO API KEY REQUIRED** - Uses browser automation with stealth features.
 
 ## Server Architecture
 
-The Brave Scraper MCP server is a Python-based MCP server using:
+The Stealth Browser MCP server is a Python-based MCP server using:
 - **Patchright** for browser automation (stealth mode)
 - **Xvfb** for headless display
 - **PyAutoGUI** for CAPTCHA solving
@@ -15,7 +15,7 @@ The Brave Scraper MCP server is a Python-based MCP server using:
 ```yaml
 # docker-compose.yml
 services:
-  brave-scraper-mcp:
+  stealth-browser-mcp:
     build: .
     ports:
       - "8080:8080"
@@ -61,11 +61,11 @@ data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"..."}]
 
 ## Tool Schemas
 
-### brave_search
+### stealth_search
 
 ```json
 {
-  "name": "brave_search",
+  "name": "stealth_search",
   "description": "Search Brave Search and return structured results. Includes AI-generated summary when Brave provides one (in ai_summary.text), along with cited sources",
   "inputSchema": {
     "type": "object",
@@ -80,11 +80,11 @@ data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"..."}]
 }
 ```
 
-### brave_extract
+### stealth_extract
 
 ```json
 {
-  "name": "brave_extract",
+  "name": "stealth_extract",
   "description": "Extract clean, readable content from a URL",
   "inputSchema": {
     "type": "object",
@@ -98,11 +98,11 @@ data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"..."}]
 }
 ```
 
-### brave_scrape_page
+### stealth_scrape
 
 ```json
 {
-  "name": "brave_scrape_page",
+  "name": "stealth_scrape",
   "description": "Deep page scraper - full content as clean Markdown optimized for AI consumption",
   "inputSchema": {
     "type": "object",

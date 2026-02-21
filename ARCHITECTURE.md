@@ -1,4 +1,4 @@
-# Brave Scraper MCP Server - Architecture
+# Stealth Browser MCP Server - Architecture
 
 **Status:** Production Ready
 
@@ -6,9 +6,9 @@
 
 ## Overview
 
-A stealth web scraping MCP server using **Patchright + Xvfb + PyAutoGUI** for Brave Search with CAPTCHA bypass capabilities. Deployed as a Docker container with HTTP transport for mcporter integration.
+A stealth web scraping MCP server using **Patchright + Xvfb + PyAutoGUI** with CAPTCHA bypass capabilities. Deployed as a Docker container with HTTP transport for mcporter integration.
 
-**Key Feature: NO API KEY REQUIRED** - Uses headless browser automation to scrape Brave Search directly.
+**Key Feature: NO API KEY REQUIRED** - Uses headless browser automation for web scraping directly.
 
 ---
 
@@ -29,7 +29,7 @@ A stealth web scraping MCP server using **Patchright + Xvfb + PyAutoGUI** for Br
 ## Project Structure
 
 ```
-brave-scraper-mcp/
+stealth-browser-mcp/
 ├── src/
 │   ├── __init__.py
 │   ├── server.py              # MCP server entry point
@@ -43,7 +43,7 @@ brave-scraper-mcp/
 │   │   ├── navigation.py      # browser_navigate, browser_back
 │   │   ├── interaction.py     # browser_click, browser_fill, browser_hover
 │   │   ├── extraction.py      # browser_screenshot, browser_evaluate
-│   │   └── brave_search.py    # brave_search, brave_extract
+│   │   └── stealth_search.py  # stealth_search, stealth_extract
 │   └── utils/
 │       ├── __init__.py
 │       ├── content_cleaner.py # Readability-style extraction
@@ -54,7 +54,7 @@ brave-scraper-mcp/
 ├── tests/
 │   ├── test_stealth.py        # Bot detection tests
 │   ├── test_captcha.py        # CAPTCHA solving tests
-│   └── test_brave_search.py   # Search flow tests
+│   └── test_stealth_search.py   # Search flow tests
 ├── Dockerfile
 ├── docker-compose.yml
 ├── entrypoint.sh
@@ -78,13 +78,13 @@ brave-scraper-mcp/
 | `browser_evaluate` | Execute JavaScript | `script: str` |
 | `browser_solve_captcha` | Auto-solve CAPTCHA | `timeout: int = 30` |
 
-### Brave Search Tools (No API Key Required)
+### Stealth Search Tools (No API Key Required)
 
 | Tool | Description | Parameters | Returns |
 |------|-------------|------------|---------|
-| `brave_search` | Search Brave Search | `query: str`, `count: int = 10` | `list[SearchResult]` |
-| `brave_extract` | Extract clean content from URL | `url: str`, `max_length: int = 5000` | `ExtractedContent` |
-| `brave_scrape_page` | Scrape full page as Markdown | `url: str`, `include_images: bool = False` | `str (Markdown)` |
+| `stealth_search` | Search the web | `query: str`, `count: int = 10` | `list[SearchResult]` |
+| `stealth_extract` | Extract clean content from URL | `url: str`, `max_length: int = 5000` | `ExtractedContent` |
+| `stealth_scrape` | Scrape full page as Markdown | `url: str`, `include_images: bool = False` | `str (Markdown)` |
 
 ### Data Models
 
@@ -321,9 +321,9 @@ exec python -m src.server --transport streamable-http --port 8080
 ```yaml
 version: '3.8'
 services:
-  brave-scraper-mcp:
+  stealth-browser-mcp:
     build: .
-    container_name: brave-scraper-mcp
+    container_name: stealth-browser-mcp
     ports:
       - "8080:8080"
     volumes:
@@ -350,21 +350,21 @@ volumes:
 
 ```bash
 # Add to mcporter config
-mcporter config add brave-scraper --url http://brave-scraper-mcp:8080/mcp
+mcporter config add stealth-browser --url http://stealth-browser-mcp:8080/mcp
 ```
 
 ### Usage Examples
 
 ```bash
-# Search Brave
-mcporter call brave-scraper.brave_search query="python async" count:5
+# Search the web
+mcporter call stealth-browser.stStealth_search query="python async" count:5
 
 # Extract content from URL
-mcporter call brave-scraper.brave_extract url="https://example.com/article"
+mcporter call stealth-browser.stealth_extract url="https://example.com/article"
 
 # Navigate and screenshot
-mcporter call brave-scraper.browser_navigate url="https://example.com"
-mcporter call brave-scraper.browser_screenshot name="homepage"
+mcporter call stealth-browser.browser_navigate url="https://example.com"
+mcporter call stealth-browser.browser_screenshot name="homepage"
 ```
 
 ---
@@ -385,7 +385,7 @@ mcporter call brave-scraper.browser_screenshot name="homepage"
 |------|--------|------------------|
 | Cloudflare bypass | Various CF-protected sites | No challenge page |
 | CAPTCHA solving | Turnstile test page | Auto-solve < 10s |
-| Brave Search | search.brave.com | Returns structured results |
+| Web Search | search.brave.com | Returns structured results |
 
 ### Performance Tests
 
@@ -419,7 +419,7 @@ See **Task #35** in Status Tracker for detailed todos:
 1. **Phase 1:** Core MCP Server
 2. **Phase 2:** Stealth Layer
 3. **Phase 3:** CAPTCHA Solver
-4. **Phase 4:** Brave Search Tools
+4. **Phase 4:** Stealth Search Tools
 5. **Phase 5:** Data Cleanup
 6. **Phase 6:** Testing
 7. **Phase 7:** Docker Deployment

@@ -114,9 +114,9 @@ class TestServerValidation:
     @pytest.mark.asyncio
     async def test_browser_click_empty_selector_raises_error(self):
         """Test that empty selector raises ValueError in browser_click."""
-        from src.server import BraveScraperServer
+        from src.server import StealthBrowserServer
 
-        server_instance = BraveScraperServer.__new__(BraveScraperServer)
+        server_instance = StealthBrowserServer.__new__(StealthBrowserServer)
         server_instance.browser_manager = MagicMock()
         server_instance.browser_manager.page = AsyncMock()
 
@@ -126,9 +126,9 @@ class TestServerValidation:
     @pytest.mark.asyncio
     async def test_browser_click_whitespace_selector_raises_error(self):
         """Test that whitespace-only selector raises ValueError."""
-        from src.server import BraveScraperServer
+        from src.server import StealthBrowserServer
 
-        server_instance = BraveScraperServer.__new__(BraveScraperServer)
+        server_instance = StealthBrowserServer.__new__(StealthBrowserServer)
         server_instance.browser_manager = MagicMock()
         server_instance.browser_manager.page = AsyncMock()
 
@@ -138,9 +138,9 @@ class TestServerValidation:
     @pytest.mark.asyncio
     async def test_browser_fill_empty_selector_raises_error(self):
         """Test that empty selector raises ValueError in browser_fill."""
-        from src.server import BraveScraperServer
+        from src.server import StealthBrowserServer
 
-        server_instance = BraveScraperServer.__new__(BraveScraperServer)
+        server_instance = StealthBrowserServer.__new__(StealthBrowserServer)
         server_instance.browser_manager = MagicMock()
         server_instance.browser_manager.page = AsyncMock()
 
@@ -150,9 +150,9 @@ class TestServerValidation:
     @pytest.mark.asyncio
     async def test_browser_hover_empty_selector_raises_error(self):
         """Test that empty selector raises ValueError in browser_hover."""
-        from src.server import BraveScraperServer
+        from src.server import StealthBrowserServer
 
-        server_instance = BraveScraperServer.__new__(BraveScraperServer)
+        server_instance = StealthBrowserServer.__new__(StealthBrowserServer)
         server_instance.browser_manager = MagicMock()
         server_instance.browser_manager.page = AsyncMock()
 
